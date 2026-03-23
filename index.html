@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Huffman Coding — DAA Project</title>
+  <meta name="description" content="Huffman Coding Compression System — Interactive demonstration of the Greedy Algorithm for DAA course. Encode, decode, visualize the tree, and analyze complexity." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════
+       HERO
+  ══════════════════════════════════════════════ -->
+  <header class="hero">
+    <div class="hero-badge">
+      <span class="dot"></span> DAA Project · Greedy Algorithm
+    </div>
+    <h1>Huffman Coding<br>Compression System</h1>
+    <p>Interactive demonstration of a <strong>Greedy Algorithm</strong> that builds optimal, prefix-free, variable-length codes — proved to achieve minimum expected encoding length.</p>
+    <div class="hero-tags">
+      <span class="tag tag-cyan">⏱ O(n log n) Time</span>
+      <span class="tag tag-amber">💾 O(n) Space</span>
+      <span class="tag tag-purple">🌲 Min-Heap</span>
+      <span class="tag tag-green">✓ Optimal Encoding</span>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════
+       NAVIGATION
+  ══════════════════════════════════════════════ -->
+  <nav class="nav-tabs" role="tablist" aria-label="Sections">
+    <button class="nav-tab active" data-tab="encoder"    role="tab" id="tab-encoder">
+      <span class="tab-icon">🔒</span> <span>Encoder</span>
+    </button>
+    <button class="nav-tab" data-tab="tree"       role="tab" id="tab-tree">
+      <span class="tab-icon">🌲</span> <span>Tree Visualizer</span>
+    </button>
+    <button class="nav-tab" data-tab="comparison" role="tab" id="tab-comparison">
+      <span class="tab-icon">📊</span> <span>Comparison</span>
+    </button>
+    <button class="nav-tab" data-tab="decoder"    role="tab" id="tab-decoder">
+      <span class="tab-icon">🔓</span> <span>Decoder</span>
+    </button>
+    <button class="nav-tab" data-tab="theory"     role="tab" id="tab-theory">
+      <span class="tab-icon">📚</span> <span>Theory</span>
+    </button>
+    <button class="nav-tab" data-tab="complexity" role="tab" id="tab-complexity">
+      <span class="tab-icon">📈</span> <span>Complexity</span>
+    </button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════════ -->
+  <main>
+
+    <!-- ── ENCODER ────────────────────────────────────────── -->
+    <section class="tab-panel active" id="panel-encoder" role="tabpanel">
+      <div class="section-header">
+        <h2>🔒 Huffman Encoder</h2>
+        <p>Enter any text to compress it using Huffman Coding. Characters appear with frequency-proportional bit lengths.</p>
+      </div>
+
+      <!-- Input -->
+      <div class="card">
+        <div class="card-title">Input Text</div>
+        <div class="input-group">
+          <textarea id="input-text" rows="4" placeholder="Type or paste your text here… (Ctrl+Enter to encode)"
+                    aria-label="Input text to encode"></textarea>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn-encode">⚡ Encode</button>
+          <button class="btn btn-secondary" id="btn-sample">🎲 Load Sample</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="results-section">
+
+        <!-- Stats -->
+        <div class="card">
+          <div class="card-title">Compression Statistics</div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value sv-cyan" id="stat-original-bits">—</div>
+              <div class="stat-label">Original Bits (8-bit fixed)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value sv-amber" id="stat-encoded-bits">—</div>
+              <div class="stat-label">Huffman Bits</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value sv-green" id="stat-savings">—</div>
+              <div class="stat-label">Space Saved</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value sv-purple" id="stat-avg-len">—</div>
+              <div class="stat-label">Avg Code Length</div>
+            </div>
+          </div>
+          <div class="savings-bar-wrap">
+            <div class="savings-bar-labels">
+              <span>Compression Efficiency</span>
+              <span id="savings-bar-pct">-</span>
+            </div>
+            <div class="savings-bar-bg">
+              <div class="savings-bar-fill" id="savings-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Frequency Table -->
+        <div class="card">
+          <div class="card-title">Character Frequencies</div>
+          <div class="freq-grid" id="freq-grid"></div>
+        </div>
+
+        <!-- Code Table -->
+        <div class="card">
+          <div class="card-title">Generated Huffman Codes</div>
+          <div class="code-table-wrap">
+            <table aria-label="Huffman codes per character">
+              <thead>
+                <tr>
+                  <th>Char</th>
+                  <th>Freq</th>
+                  <th>Huffman Code</th>
+                  <th>Bits</th>
+                </tr>
+              </thead>
+              <tbody id="code-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Encoded Bit Stream -->
+        <div class="card">
+          <div class="card-title">Encoded Bit Stream</div>
+          <div class="bit-stream" id="bit-stream" aria-live="polite"></div>
+          <div class="btn-group">
+            <button class="btn btn-secondary" id="btn-copy-bits">📋 Copy Bits</button>
+          </div>
+        </div>
+
+      </div><!-- /results-section -->
+    </section>
+
+    <!-- ── TREE VISUALIZER ────────────────────────────────── -->
+    <section class="tab-panel" id="panel-tree" role="tabpanel">
+      <div class="section-header">
+        <h2>🌲 Huffman Tree Visualizer</h2>
+        <p>SVG visualization of the binary Huffman tree. Left edges = <strong style="color:var(--cyan)">0</strong>, Right edges = <strong style="color:var(--amber)">1</strong>. Use step mode to replay each greedy merge.</p>
+      </div>
+
+      <!-- Step controls -->
+      <div class="step-controls">
+        <button class="btn btn-secondary" id="btn-step-back">← Prev</button>
+        <button class="btn btn-primary"   id="btn-step-fwd">Next Step →</button>
+        <button class="btn btn-secondary" id="btn-tree-full">Full Tree</button>
+        <button class="btn btn-secondary" id="btn-tree-reset">↺ Reset</button>
+        <span class="step-info" id="step-info">Encode text on the Encoder tab to begin.</span>
+      </div>
+
+      <!-- SVG canvas -->
+      <div class="tree-container" id="tree-container">
+        <div class="tree-placeholder" id="tree-placeholder">
+          <div class="icon">🌲</div>
+          <p>Encode some text first to generate the tree.</p>
+        </div>
+        <svg id="tree-svg" style="display:none;" aria-label="Huffman binary tree"></svg>
+      </div>
+
+      <!-- Legend -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Legend</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:0.85rem;color:var(--text-secondary)">
+          <span><span style="color:var(--cyan);font-weight:700">●</span> Leaf node (character + frequency)</span>
+          <span><span style="color:var(--purple);font-weight:700">◌</span> Internal node (merged frequency)</span>
+          <span><span style="color:var(--cyan);font-weight:700">0</span> = Left edge</span>
+          <span><span style="color:var(--amber);font-weight:700">1</span> = Right edge</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── COMPARISON ─────────────────────────────────────── -->
+    <section class="tab-panel" id="panel-comparison" role="tabpanel">
+      <div class="section-header">
+        <h2>📊 Fixed-Length vs Variable-Length</h2>
+        <p>Side-by-side comparison of standard 8-bit ASCII encoding vs Huffman variable-length encoding per character.</p>
+      </div>
+
+      <div class="card">
+        <div id="cmp-empty" class="empty-state">
+          <div class="es-icon">📊</div>
+          <p>Encode some text on the Encoder tab to see the comparison.</p>
+        </div>
+        <div class="code-table-wrap">
+          <table id="cmp-table" aria-label="Fixed vs variable encoding comparison">
+            <thead>
+              <tr>
+                <th>Char</th>
+                <th>Freq</th>
+                <th>Prob</th>
+                <th>Fixed Code (ASCII)</th>
+                <th>Fixed Bits × Count</th>
+                <th>Huffman Code</th>
+                <th>Huff Bits × Count</th>
+                <th>Saved</th>
+              </tr>
+            </thead>
+            <tbody id="cmp-table-body"></tbody>
+            <tfoot id="cmp-table-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Key Insight</div>
+        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.8">
+          Huffman Coding assigns <strong style="color:var(--cyan)">shorter codes to frequent characters</strong> and longer codes to rare ones. This is the Greedy property — by always merging the two smallest-frequency nodes, we minimize the total weighted path length (= total encoding bits), which is provably optimal for symbol-by-symbol encoding.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── DECODER ────────────────────────────────────────── -->
+    <section class="tab-panel" id="panel-decoder" role="tabpanel">
+      <div class="section-header">
+        <h2>🔓 Huffman Decoder</h2>
+        <p>Paste encoded bits to decode. The codebook is auto-loaded from the last encode operation. This works because Huffman codes are <strong>prefix-free</strong> — no code is a prefix of another.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Codebook (from last encode)</div>
+        <pre id="decoder-codebook" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-secondary);white-space:pre-wrap;background:rgba(0,0,0,0.2);padding:14px;border-radius:8px;border:1px solid var(--border)">
+Encode text first to auto-load codebook here.
+        </pre>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Bit Stream to Decode</div>
+        <div class="input-group">
+          <textarea id="decoder-bits" rows="4"
+            placeholder="Paste encoded bits here (0s and 1s) — auto-filled after encoding"
+            aria-label="Encoded bits"></textarea>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-amber" id="btn-decode">🔓 Decode</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Decoded Output</div>
+        <div class="decoded-output" id="decoded-output" aria-live="polite">
+          Decoded text will appear here…
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-secondary" id="btn-copy-decoded">📋 Copy Text</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Why Prefix-Free Decoding Works</div>
+        <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.8">
+          Huffman codes have the <strong style="color:var(--cyan)">prefix-free property</strong>: no codeword is a prefix of another. This means we can decode a bitstream <em>unambiguously</em> by walking the tree bit-by-bit — going Left on <strong style="color:var(--cyan)">0</strong>, Right on <strong style="color:var(--amber)">1</strong> — and emitting the character whenever we reach a leaf. No lookahead or separators needed.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── THEORY ──────────────────────────────────────────── -->
+    <section class="tab-panel" id="panel-theory" role="tabpanel">
+      <div class="section-header">
+        <h2>📚 Algorithm Theory</h2>
+        <p>Understanding <em>why</em> Huffman Coding is a Greedy Algorithm and how its optimality is proven.</p>
+      </div>
+
+      <div class="theory-grid">
+
+        <!-- What is a Greedy Algorithm -->
+        <div class="theory-card">
+          <div class="theory-card-icon">🧠</div>
+          <h3>What is a Greedy Algorithm?</h3>
+          <p>A greedy algorithm makes the <strong>locally optimal choice</strong> at each step, hoping to find a global optimum. Key properties:</p>
+          <ul style="margin-top:10px">
+            <li><strong>Greedy Choice Property</strong> — A locally optimal choice leads to a globally optimal solution.</li>
+            <li><strong>Optimal Substructure</strong> — An optimal solution contains optimal solutions to its subproblems.</li>
+          </ul>
+          <div class="highlight-box">
+            Huffman Coding satisfies both — making it a textbook-perfect greedy algorithm.
+          </div>
+        </div>
+
+        <!-- Why Huffman is Greedy -->
+        <div class="theory-card">
+          <div class="theory-card-icon">⚡</div>
+          <h3>Why Huffman is Greedy</h3>
+          <p>The <strong>Greedy Choice</strong> in Huffman is:</p>
+          <div class="highlight-box" style="margin:10px 0">
+            "At each step, merge the two nodes with the <strong>minimum frequency</strong>."
+          </div>
+          <p>This local decision (always pick the smallest two) is made <em>n-1</em> times. Each decision is irrevocable — we never reconsider a merge. This greedy structure builds the tree from the bottom up, ensuring the rarest characters end up deepest in the tree (longest codes).</p>
+        </div>
+
+        <!-- Optimality Proof -->
+        <div class="theory-card">
+          <div class="theory-card-icon">✅</div>
+          <h3>Proof of Optimality (Exchange Argument)</h3>
+          <p>We prove Huffman produces an optimal prefix-free code:</p>
+          <ol class="proof-steps">
+            <li>In any optimal tree, the two symbols with <strong>lowest frequency</strong> must be siblings at the deepest level.</li>
+            <li>Assume they are not — then swapping them with the actual deepest pair <strong>cannot increase</strong> the total cost (since lower-freq symbols get longer codes → cost doesn't increase).</li>
+            <li>This shows the greedy choice (merge smallest two) is always safe — it leads to an optimal solution.</li>
+            <li>By <strong>optimal substructure</strong>, after merging f₁+f₂, the reduced problem (with the merged node) also has an optimal solution, which Huffman finds recursively.</li>
+            <li>∴ Huffman Coding produces a minimum-cost prefix-free binary code. ∎</li>
+          </ol>
+        </div>
+
+        <!-- Algorithm Steps -->
+        <div class="theory-card">
+          <div class="theory-card-icon">🔢</div>
+          <h3>Algorithm Steps</h3>
+          <ol class="proof-steps">
+            <li>Count character frequencies → O(n)</li>
+            <li>Insert all characters into a <strong>Min-Heap</strong> as leaf nodes → O(n)</li>
+            <li>While heap has &gt;1 node: extract two minimums, merge into internal node with combined frequency, re-insert → O(n log n)</li>
+            <li>DFS the tree to assign binary codes → O(n)</li>
+            <li>Encode original text using the code table → O(n)</li>
+          </ol>
+        </div>
+
+        <!-- Prefix-Free Property -->
+        <div class="theory-card">
+          <div class="theory-card-icon">🔑</div>
+          <h3>Prefix-Free (Uniquely Decodable)</h3>
+          <p>Huffman codes are <strong>prefix codes</strong> — no codeword is a prefix of another. This is guaranteed by the binary tree structure: codes are paths from root to leaf, and a leaf cannot be an ancestor of another leaf.</p>
+          <div class="highlight-box">
+            This means the encoded bitstream can be decoded <strong>unambiguously</strong> without any separator characters — just walk the tree bit by bit.
+          </div>
+        </div>
+
+        <!-- Applications -->
+        <div class="theory-card">
+          <div class="theory-card-icon">🌍</div>
+          <h3>Real-World Applications</h3>
+          <ul>
+            <li><strong>JPEG, PNG, MP3</strong> — Huffman is the entropy coding stage</li>
+            <li><strong>ZIP / DEFLATE</strong> — combines LZ77 + Huffman</li>
+            <li><strong>HTTP/2 HPACK</strong> — header compression</li>
+            <li><strong>Fax machines</strong> — Modified Huffman coding (MH)</li>
+            <li><strong>Morse code</strong> — conceptually similar (frequent letters = shorter codes)</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── COMPLEXITY ─────────────────────────────────────── -->
+    <section class="tab-panel" id="panel-complexity" role="tabpanel">
+      <div class="section-header">
+        <h2>📈 Complexity Analysis</h2>
+        <p>Detailed breakdown of time and space complexity for each phase of the Huffman Coding algorithm.</p>
+      </div>
+
+      <div class="complexity-grid">
+
+        <!-- Overall Time -->
+        <div class="complexity-card">
+          <div class="complexity-badge">O(n log n)</div>
+          <h3>Overall Time Complexity</h3>
+          <ul class="phase-list">
+            <li class="phase-item">
+              <span class="phase-name">Build Frequency Map</span>
+              <span class="phase-cost">O(n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Build Min-Heap (n leaves)</span>
+              <span class="phase-cost">O(n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">n−1 Extract-Min operations</span>
+              <span class="phase-cost">O(n log n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">n−1 Insert operations</span>
+              <span class="phase-cost">O(n log n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">DFS to generate codes</span>
+              <span class="phase-cost">O(n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Encode text</span>
+              <span class="phase-cost">O(m)</span>
+            </li>
+          </ul>
+          <div class="highlight-box" style="margin-top:14px">
+            Bottleneck: heap operations dominate → <strong>O(n log n)</strong><br>
+            where n = number of distinct characters
+          </div>
+        </div>
+
+        <!-- Space -->
+        <div class="complexity-card">
+          <div class="complexity-badge">O(n)</div>
+          <h3>Space Complexity</h3>
+          <ul class="phase-list">
+            <li class="phase-item">
+              <span class="phase-name">Frequency map</span>
+              <span class="phase-cost">O(n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Min-Heap (max 2n−1 nodes)</span>
+              <span class="phase-cost">O(n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Huffman Tree nodes</span>
+              <span class="phase-cost">O(n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Code table</span>
+              <span class="phase-cost">O(n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Encoded output</span>
+              <span class="phase-cost">O(m)</span>
+            </li>
+          </ul>
+          <div class="highlight-box" style="margin-top:14px">
+            n = distinct chars, m = input text length.<br>
+            Total: <strong>O(n + m)</strong>
+          </div>
+        </div>
+
+        <!-- Heap Operations -->
+        <div class="complexity-card">
+          <div class="complexity-badge">O(log n)</div>
+          <h3>Min-Heap Operations</h3>
+          <ul class="phase-list">
+            <li class="phase-item">
+              <span class="phase-name">Insert (bubble-up)</span>
+              <span class="phase-cost">O(log n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Extract-Min (sink-down)</span>
+              <span class="phase-cost">O(log n)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Peek (view min)</span>
+              <span class="phase-cost">O(1)</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Build heap (n items)</span>
+              <span class="phase-cost">O(n)</span>
+            </li>
+          </ul>
+          <div class="highlight-box" style="margin-top:14px">
+            The min-heap is the core data structure enabling the greedy O(n log n) performance.
+          </div>
+        </div>
+
+        <!-- Compression Bounds -->
+        <div class="complexity-card">
+          <div class="complexity-badge">≤ H(X)+1</div>
+          <h3>Compression Quality</h3>
+          <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:14px">
+            Huffman achieves expected code length L* where:
+          </p>
+          <ul class="phase-list">
+            <li class="phase-item">
+              <span class="phase-name">Shannon Entropy H(X)</span>
+              <span class="phase-cost" style="color:var(--cyan)">Lower bound</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Huffman L*</span>
+              <span class="phase-cost" style="color:var(--green)">H(X) ≤ L* &lt; H(X)+1</span>
+            </li>
+            <li class="phase-item">
+              <span class="phase-name">Fixed-length (8-bit)</span>
+              <span class="phase-cost" style="color:var(--text-muted)">8 bits/char</span>
+            </li>
+          </ul>
+          <div class="highlight-box" style="margin-top:14px">
+            Huffman is within <strong>1 bit per symbol</strong> of the theoretical minimum (Shannon entropy). For grouped symbols, it approaches the entropy limit.
+          </div>
+        </div>
+
+      </div><!-- /complexity-grid -->
+
+      <!-- Comparison with other algorithms -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-title">Algorithm Comparison</div>
+        <div class="code-table-wrap">
+          <table aria-label="Comparison of compression algorithm complexities">
+            <thead>
+              <tr>
+                <th>Algorithm</th>
+                <th>Strategy</th>
+                <th>Time</th>
+                <th>Space</th>
+                <th>Optimality</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--cyan);font-weight:700">Huffman Coding</td>
+                <td>Greedy (min-heap)</td>
+                <td style="color:var(--amber)">O(n log n)</td>
+                <td>O(n)</td>
+                <td style="color:var(--green)">✓ Optimal (symbol-wise)</td>
+              </tr>
+              <tr>
+                <td>Shannon-Fano</td>
+                <td>Divide &amp; Conquer</td>
+                <td>O(n log n)</td>
+                <td>O(n)</td>
+                <td style="color:var(--red)">✗ Not always optimal</td>
+              </tr>
+              <tr>
+                <td>Arithmetic Coding</td>
+                <td>Probabilistic</td>
+                <td>O(n)</td>
+                <td>O(1)</td>
+                <td style="color:var(--green)">✓ Approaches entropy</td>
+              </tr>
+              <tr>
+                <td>LZW (ZIP)</td>
+                <td>Dictionary</td>
+                <td>O(n)</td>
+                <td>O(k)</td>
+                <td style="color:var(--amber)">~ Context-dependent</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ══════════════════════════════════════════════
+       SCRIPTS (order matters)
+  ══════════════════════════════════════════════ -->
+  <script src="huffman.js"></script>
+  <script src="visualizer.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
