@@ -742,4 +742,69 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
   .card { padding: 18px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .theory-grid { grid-template-columns: 1fr; }
+  
+  .site-footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+}
+
+/* ─── Footer ───────────────────────────────────────────────── */
+.site-footer {
+  margin-top: 60px;
+  padding: 32px 40px;
+  background: rgba(10, 11, 20, 0.4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footer-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.footer-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.footer-subtitle .divider {
+  margin: 0 4px;
+  color: var(--border-glow);
+}
+
+.github-link {
+  color: var(--text-muted);
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  transition: var(--transition);
+}
+
+.github-link:hover {
+  color: var(--cyan);
+  transform: scale(1.1);
+}
+
+.attribution-link {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.25);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.attribution-link:hover {
+  color: var(--cyan);
 }
