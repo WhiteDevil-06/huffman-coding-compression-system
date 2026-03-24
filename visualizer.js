@@ -73,7 +73,7 @@ const Visualizer = (() => {
   }
 
   // ─── Main render ──────────────────────────────────────────
-  function render(root, svgEl) {
+  function render(root, svgEl, animated = true) {
     if (!root || !svgEl) return;
 
     // Step 1: compute all _x, _y positions
@@ -128,13 +128,18 @@ const Visualizer = (() => {
         const x2 = nx - ux * NODE_R;
         const y2 = ny - uy * NODE_R;
 
+        // Group edge line and text to toggle visibility easily during step mode
+        const edgeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        edgeG.setAttribute('class', 'tree-edge-group');
+        edgeG.setAttribute('data-child', `n${node.id}`);
+
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', x1.toFixed(1));
         line.setAttribute('y1', y1.toFixed(1));
         line.setAttribute('x2', x2.toFixed(1));
         line.setAttribute('y2', y2.toFixed(1));
         line.setAttribute('class', 'tree-edge');
-        edgeGroup.appendChild(line);
+        edgeG.appendChild(line);
 
         // Edge label — positioned at midpoint, offset left/right
         const lx = (px + nx) / 2 + (side === 'left' ? -14 : 14);
@@ -146,7 +151,11 @@ const Visualizer = (() => {
         lbl.setAttribute('text-anchor', 'middle');
         lbl.setAttribute('dominant-baseline', 'middle');
         lbl.textContent = side === 'left' ? '0' : '1';
-        edgeGroup.appendChild(lbl);
+        edgeG.appendChild(lbl);
+        
+        // Setup transition for step mode
+        edgeG.style.transition = 'opacity 0.3s ease';
+        edgeGroup.appendChild(edgeG);
       }
 
       // ── Node group ──────────────────────────────────────────
@@ -154,17 +163,22 @@ const Visualizer = (() => {
       // IMPORTANT: set transform as an ATTRIBUTE (not CSS) so it doesn't
       // conflict with any CSS animation property
       g.setAttribute('transform', `translate(${nx.toFixed(1)}, ${ny.toFixed(1)})`);
+      g.setAttribute('data-id', `n${node.id}`);
 
       const isLeaf = node.char !== null;
       g.setAttribute('class', isLeaf ? 'tree-node tree-node-leaf' : 'tree-node tree-node-internal');
 
       // JS-side fade-in via opacity style (safe — doesn't touch transform)
-      g.style.opacity = '0';
       g.style.transition = 'opacity 0.3s ease';
-      const capturedG = g;
-      const capturedDelay = animIdx * 50;
-      animIdx++;
-      setTimeout(() => { capturedG.style.opacity = '1'; }, capturedDelay);
+      if (animated) {
+        g.style.opacity = '0';
+        const capturedG = g;
+        const capturedDelay = animIdx * 50;
+        animIdx++;
+        setTimeout(() => { capturedG.style.opacity = '1'; }, capturedDelay);
+      } else {
+        g.style.opacity = '1';
+      }
 
       // Circle
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -223,20 +237,60 @@ const Visualizer = (() => {
     _stepIdx  = 0;
     _fullRoot = fullRoot;
     _svgEl    = svgEl;
+    
+    // Render the FULL tree immediately but without the staggered animation
+    render(_fullRoot, _svgEl, false);
+    
+    // Set up step 0 (only leaves visible)
+    showStep(0);
+  }
+  
+  function showStep(index) {
+    if (!_svgEl || !_steps) return;
+    
+    // Hide all internal nodes and all edges instantly
+    const internals = _svgEl.querySelectorAll('.tree-node-internal');
+    const edges = _svgEl.querySelectorAll('.tree-edge-group');
+    internals.forEach(el => el.style.opacity = '0');
+    edges.forEach(el => el.style.opacity = '0');
+    
+    // Loop through steps 0 up to `index` and reveal corresponding elements
+    for (let i = 0; i <= index; i++) {
+      const step = _steps[i];
+      if (step.type === 'merge') {
+        const nodeEl = _svgEl.querySelector(`g[data-id="n${step.merged.id}"]`);
+        if (nodeEl) nodeEl.style.opacity = '1';
+        
+        const edgeLeft = _svgEl.querySelector(`g[data-child="n${step.left.id}"]`);
+        if (edgeLeft) edgeLeft.style.opacity = '1';
+        
+        const edgeRight = _svgEl.querySelector(`g[data-child="n${step.right.id}"]`);
+        if (edgeRight) edgeRight.style.opacity = '1';
+      }
+    }
   }
 
   function stepForward() {
-    if (_stepIdx >= _steps.length) return null;
-    return _steps[_stepIdx++];
+    if (_stepIdx >= _steps.length - 1) return null;
+    _stepIdx++;
+    showStep(_stepIdx);
+    return _steps[_stepIdx];
   }
 
   function stepBack() {
     if (_stepIdx <= 0) return null;
-    return _steps[--_stepIdx];
+    _stepIdx--;
+    showStep(_stepIdx);
+    return _steps[_stepIdx];
   }
 
   function renderFull() {
-    render(_fullRoot, _svgEl);
+    // Reveal everything
+    if (_svgEl) {
+      _svgEl.querySelectorAll('.tree-node-internal').forEach(el => el.style.opacity = '1');
+      _svgEl.querySelectorAll('.tree-edge-group').forEach(el => el.style.opacity = '1');
+    }
+    _stepIdx = _steps ? _steps.length - 1 : 0;
   }
 
   function currentIdx()  { return _stepIdx; }

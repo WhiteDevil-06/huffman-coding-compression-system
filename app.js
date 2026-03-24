@@ -145,7 +145,6 @@ function initTreeTab() {
       // Start step mode — reset
       stepperActive = true;
       Visualizer.initStepper(lastResult.steps, lastResult.root, document.getElementById('tree-svg'));
-      document.getElementById('tree-svg').innerHTML = '';
     }
     const step = Visualizer.stepForward();
     if (!step) {
