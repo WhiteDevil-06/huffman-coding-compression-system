@@ -1,158 +1,203 @@
 /**
  * ============================================================
- *  Huffman Tree Visualizer (visualizer.js)
+ *  Huffman Tree Visualizer (visualizer.js)  — v2
  *  SVG-based binary tree renderer with step-by-step animation
+ *
+ *  Layout Algorithm:
+ *    Post-order traversal assigns leaf nodes sequential x coords.
+ *    Internal nodes are centered between their two children.
+ *    This guarantees: no overlaps, correct parent-child alignment,
+ *    and clean symmetric subtrees.
  * ============================================================
  */
 
 const Visualizer = (() => {
-  const NODE_R    = 28;      // node circle radius
-  const LEVEL_H   = 90;      // vertical spacing between levels
-  const MIN_SEP   = 72;      // minimum horizontal separation
+  // ─── Constants ────────────────────────────────────────────
+  const NODE_R   = 26;   // node circle radius (px)
+  const H_GAP    = 75;   // horizontal gap between adjacent leaf nodes
+  const V_GAP    = 88;   // vertical gap between tree levels
+  const PADDING  = 50;   // SVG canvas padding on all sides
 
-  // ─── Layout: assign x/y to each node via post-order ───────
+  // ─── Layout: clean 2-pass post-order ──────────────────────
+  /**
+   * Pass 1 (single post-order traversal):
+   *   - Leaf nodes get sequential x based on a shared counter.
+   *   - Internal nodes get x = midpoint of their children.
+   *   - All nodes get y = depth * V_GAP.
+   *
+   * This is the standard algorithm for drawing ordered trees
+   * and guarantees no overlapping nodes.
+   */
   function layoutTree(root) {
-    let counter = 0;
+    let leafCounter = 0;
 
-    function getLeafCount(node) {
-      if (!node) return 0;
-      if (!node.left && !node.right) return 1;
-      return getLeafCount(node.left) + getLeafCount(node.right);
-    }
+    function postOrder(node, depth) {
+      if (!node) return;
 
-    function assignCoords(node, depth, leftBound) {
-      if (!node) return null;
-
-      const leaves = getLeafCount(node);
-
-      // Leaf
       if (!node.left && !node.right) {
-        const pos = { x: leftBound + NODE_R + 10, y: depth * LEVEL_H + NODE_R + 20 };
-        node._pos = pos;
-        node._width = MIN_SEP;
-        return node;
+        // Leaf: place at next sequential horizontal slot
+        node._x = leafCounter * H_GAP;
+        node._y = depth * V_GAP;
+        leafCounter++;
+        return;
       }
 
-      const leftLeaves  = getLeafCount(node.left);
-      const rightLeaves = getLeafCount(node.right);
-      const leftWidth   = Math.max(leftLeaves * MIN_SEP, MIN_SEP);
-      const rightWidth  = Math.max(rightLeaves * MIN_SEP, MIN_SEP);
+      // Recurse on children first
+      postOrder(node.left,  depth + 1);
+      postOrder(node.right, depth + 1);
 
-      assignCoords(node.left,  depth + 1, leftBound);
-      assignCoords(node.right, depth + 1, leftBound + leftWidth);
-
-      const lx = node.left  ? node.left._pos.x  : leftBound;
-      const rx = node.right ? node.right._pos.x : leftBound + leftWidth;
-      node._pos = { x: (lx + rx) / 2, y: depth * LEVEL_H + NODE_R + 20 };
-      node._width = leftWidth + rightWidth;
-
-      return node;
+      // Internal node: horizontally centered between its children
+      node._x = (node.left._x + node.right._x) / 2;
+      node._y = depth * V_GAP;
     }
 
-    assignCoords(root, 0, 0);
+    postOrder(root, 0);
   }
 
-  // ─── Render all nodes + edges into SVG ────────────────────
+  // ─── Bounding box helper ───────────────────────────────────
+  function getBounds(root) {
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+
+    function walk(node) {
+      if (!node) return;
+      if (node._x < minX) minX = node._x;
+      if (node._x > maxX) maxX = node._x;
+      if (node._y < minY) minY = node._y;
+      if (node._y > maxY) maxY = node._y;
+      walk(node.left);
+      walk(node.right);
+    }
+    walk(root);
+    return { minX, maxX, minY, maxY };
+  }
+
+  // ─── Main render ──────────────────────────────────────────
   function render(root, svgEl) {
     if (!root || !svgEl) return;
+
+    // Step 1: compute all _x, _y positions
     layoutTree(root);
 
-    // Calculate bounding box
-    let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
-    function bounds(node) {
-      if (!node) return;
-      minX = Math.min(minX, node._pos.x);
-      maxX = Math.max(maxX, node._pos.x);
-      maxY = Math.max(maxY, node._pos.y);
-      bounds(node.left);
-      bounds(node.right);
-    }
-    bounds(root);
+    // Step 2: get bounding box
+    const { minX, maxX, minY, maxY } = getBounds(root);
 
-    const padding  = 50;
-    const svgW = maxX - minX + padding * 2;
-    const svgH = maxY + padding * 2;
+    // Step 3: set up SVG canvas with generous padding
+    const vbX = minX - PADDING;
+    const vbY = minY - PADDING;
+    const vbW = (maxX - minX) + PADDING * 2;
+    const vbH = (maxY - minY) + PADDING * 2 + NODE_R * 2; // extra bottom space for leaf labels
 
     svgEl.innerHTML = '';
-    svgEl.setAttribute('viewBox', `${minX - padding} 0 ${svgW} ${svgH}`);
-    svgEl.setAttribute('width',  svgW);
-    svgEl.setAttribute('height', svgH);
+    svgEl.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+    // Render at native size (scrollable container handles overflow)
+    svgEl.setAttribute('width',  vbW);
+    svgEl.setAttribute('height', vbH);
 
-    // Draw edges first (below nodes)
+    // Step 4: draw edges (behind nodes)
     const edgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     edgeGroup.setAttribute('id', 'edges');
     svgEl.appendChild(edgeGroup);
 
-    // Draw nodes on top
+    // Step 5: draw nodes (in front of edges)
     const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     nodeGroup.setAttribute('id', 'nodes');
     svgEl.appendChild(nodeGroup);
 
-    let delay = 0;
+    let animIdx = 0;
+
     function drawNode(node, parent, side) {
       if (!node) return;
 
-      const { x, y } = node._pos;
+      const nx = node._x;
+      const ny = node._y;
 
       // Draw edge from parent to this node
       if (parent) {
-        const px = parent._pos.x, py = parent._pos.y;
+        const px = parent._x;
+        const py = parent._y;
+
+        const dx = nx - px;
+        const dy = ny - py;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const ux = dx / dist;
+        const uy = dy / dist;
+
+        const x1 = px + ux * NODE_R;
+        const y1 = py + uy * NODE_R;
+        const x2 = nx - ux * NODE_R;
+        const y2 = ny - uy * NODE_R;
 
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', px); line.setAttribute('y1', py + NODE_R);
-        line.setAttribute('x2', x);  line.setAttribute('y2', y  - NODE_R);
+        line.setAttribute('x1', x1.toFixed(1));
+        line.setAttribute('y1', y1.toFixed(1));
+        line.setAttribute('x2', x2.toFixed(1));
+        line.setAttribute('y2', y2.toFixed(1));
         line.setAttribute('class', 'tree-edge');
-        line.style.animationDelay = `${delay * 60}ms`;
         edgeGroup.appendChild(line);
 
-        // Edge label 0/1
-        const mx = (px + x) / 2;
-        const my = (py + NODE_R + y - NODE_R) / 2;
+        // Edge label — positioned at midpoint, offset left/right
+        const lx = (px + nx) / 2 + (side === 'left' ? -14 : 14);
+        const ly = (py + ny) / 2 - 5;
         const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        lbl.setAttribute('x', mx + (side === 'left' ? -10 : 10));
-        lbl.setAttribute('y', my);
+        lbl.setAttribute('x', lx.toFixed(1));
+        lbl.setAttribute('y', ly.toFixed(1));
         lbl.setAttribute('class', `edge-label edge-label-${side === 'left' ? '0' : '1'}`);
+        lbl.setAttribute('text-anchor', 'middle');
         lbl.setAttribute('dominant-baseline', 'middle');
         lbl.textContent = side === 'left' ? '0' : '1';
         edgeGroup.appendChild(lbl);
       }
 
-      // Node group (for transform-origin animation)
+      // ── Node group ──────────────────────────────────────────
       const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('transform', `translate(${x}, ${y})`);
+      // IMPORTANT: set transform as an ATTRIBUTE (not CSS) so it doesn't
+      // conflict with any CSS animation property
+      g.setAttribute('transform', `translate(${nx.toFixed(1)}, ${ny.toFixed(1)})`);
+
       const isLeaf = node.char !== null;
       g.setAttribute('class', isLeaf ? 'tree-node tree-node-leaf' : 'tree-node tree-node-internal');
-      g.style.animationDelay = `${delay * 60}ms`;
-      delay++;
+
+      // JS-side fade-in via opacity style (safe — doesn't touch transform)
+      g.style.opacity = '0';
+      g.style.transition = 'opacity 0.3s ease';
+      const capturedG = g;
+      const capturedDelay = animIdx * 50;
+      animIdx++;
+      setTimeout(() => { capturedG.style.opacity = '1'; }, capturedDelay);
 
       // Circle
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', 0); circle.setAttribute('cy', 0);
-      circle.setAttribute('r', NODE_R);
+      circle.setAttribute('cx', '0');
+      circle.setAttribute('cy', '0');
+      circle.setAttribute('r',  NODE_R);
       g.appendChild(circle);
 
       if (isLeaf) {
-        // Character label
         const charTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        charTxt.setAttribute('y', -6);
-        charTxt.setAttribute('class', 'char-label');
+        charTxt.setAttribute('x', '0');
+        charTxt.setAttribute('y', '-7');
+        charTxt.setAttribute('text-anchor', 'middle');
         charTxt.setAttribute('dominant-baseline', 'middle');
+        charTxt.setAttribute('class', 'char-label');
         charTxt.textContent = node.char === ' ' ? '␣' : node.char;
         g.appendChild(charTxt);
 
-        // Frequency label
         const freqTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        freqTxt.setAttribute('y', 10);
-        freqTxt.setAttribute('class', 'freq-label');
+        freqTxt.setAttribute('x', '0');
+        freqTxt.setAttribute('y', '9');
+        freqTxt.setAttribute('text-anchor', 'middle');
         freqTxt.setAttribute('dominant-baseline', 'middle');
+        freqTxt.setAttribute('class', 'freq-label');
         freqTxt.textContent = node.freq;
         g.appendChild(freqTxt);
       } else {
-        // Internal node — only frequency
         const freqTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        freqTxt.setAttribute('y', 0);
-        freqTxt.setAttribute('class', 'freq-label');
+        freqTxt.setAttribute('x', '0');
+        freqTxt.setAttribute('y', '0');
+        freqTxt.setAttribute('text-anchor', 'middle');
         freqTxt.setAttribute('dominant-baseline', 'middle');
+        freqTxt.setAttribute('class', 'freq-label');
         freqTxt.textContent = node.freq;
         g.appendChild(freqTxt);
       }
@@ -163,26 +208,26 @@ const Visualizer = (() => {
       drawNode(node.right, node, 'right');
     }
 
+
     drawNode(root, null, null);
   }
 
-  // ─── Step-by-step animation (rebuild tree after each merge) ─
-  let _steps = [];
-  let _stepIdx = 0;
+  // ─── Step-by-step stepper ────────────────────────────────
+  let _steps    = [];
+  let _stepIdx  = 0;
   let _fullRoot = null;
-  let _svgEl = null;
+  let _svgEl    = null;
 
   function initStepper(steps, fullRoot, svgEl) {
-    _steps   = steps;
-    _stepIdx = 0;
+    _steps    = steps;
+    _stepIdx  = 0;
     _fullRoot = fullRoot;
     _svgEl    = svgEl;
   }
 
   function stepForward() {
     if (_stepIdx >= _steps.length) return null;
-    const step = _steps[_stepIdx++];
-    return step;
+    return _steps[_stepIdx++];
   }
 
   function stepBack() {
@@ -194,29 +239,28 @@ const Visualizer = (() => {
     render(_fullRoot, _svgEl);
   }
 
-  function currentIdx() { return _stepIdx; }
-  function totalSteps() { return _steps.length; }
+  function currentIdx()  { return _stepIdx; }
+  function totalSteps()  { return _steps.length; }
 
   // ─── Frequency bar chart (Canvas) ────────────────────────
   function renderFreqChart(freqMap, canvasEl) {
     const entries = Object.entries(freqMap).sort((a, b) => b[1] - a[1]);
     const maxFreq = entries[0][1];
-    const ctx = canvasEl.getContext('2d');
+    const ctx     = canvasEl.getContext('2d');
     const W = canvasEl.width, H = canvasEl.height;
-    const barW = Math.max(24, Math.floor((W - 40) / entries.length) - 6);
+    const barW   = Math.max(24, Math.floor((W - 40) / entries.length) - 6);
     const startX = 20;
     const bottomY = H - 30;
-    const chartH = H - 50;
+    const chartH  = H - 50;
 
     ctx.clearRect(0, 0, W, H);
 
     entries.forEach(([char, freq], i) => {
       const ratio = freq / maxFreq;
       const bH = Math.max(4, ratio * chartH);
-      const x = startX + i * (barW + 6);
-      const y = bottomY - bH;
+      const x  = startX + i * (barW + 6);
+      const y  = bottomY - bH;
 
-      // Bar
       const grad = ctx.createLinearGradient(x, y, x, bottomY);
       grad.addColorStop(0, '#00d4ff');
       grad.addColorStop(1, '#0099bb');
@@ -225,18 +269,25 @@ const Visualizer = (() => {
       ctx.roundRect(x, y, barW, bH, 3);
       ctx.fill();
 
-      // Character label
       ctx.fillStyle = '#8892a4';
       ctx.font = '11px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
       ctx.fillText(char === ' ' ? '␣' : char, x + barW / 2, bottomY + 16);
 
-      // Freq label
       ctx.fillStyle = '#e8eaf6';
       ctx.font = '10px Inter, sans-serif';
       ctx.fillText(freq, x + barW / 2, y - 4);
     });
   }
 
-  return { render, initStepper, stepForward, stepBack, renderFull, currentIdx, totalSteps, renderFreqChart };
+  return {
+    render,
+    initStepper,
+    stepForward,
+    stepBack,
+    renderFull,
+    currentIdx,
+    totalSteps,
+    renderFreqChart
+  };
 })();

@@ -490,10 +490,11 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
   border-radius: var(--radius-md);
   overflow: auto;
   min-height: 360px;
+  max-height: 600px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
 }
 
 .tree-placeholder {
@@ -510,22 +511,17 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
 }
 
 /* SVG node styles */
-.tree-node-leaf circle    { fill: rgba(0,212,255,0.15); stroke: var(--cyan); stroke-width: 2; }
-.tree-node-internal circle { fill: rgba(179,136,255,0.1); stroke: var(--purple); stroke-width: 1.5; stroke-dasharray: 4 3; }
-.tree-node text { fill: var(--text-primary); font-family: var(--font-mono); font-size: 11px; text-anchor: middle; }
-.tree-node .char-label { font-size: 13px; font-weight: 700; fill: var(--cyan); }
-.tree-node .freq-label { fill: var(--text-secondary); }
-.tree-edge { stroke: rgba(255,255,255,0.15); stroke-width: 1.5; fill: none; }
-.edge-label { font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
-.edge-label-0 { fill: var(--cyan); }
-.edge-label-1 { fill: var(--amber); }
-
-/* Node entrance animation */
-.tree-node { animation: nodeIn 0.4s ease both; }
-@keyframes nodeIn {
-  from { opacity: 0; transform: scale(0.5); }
-  to   { opacity: 1; transform: scale(1); }
-}
+.tree-node-leaf circle     { fill: rgba(0,212,255,0.22); stroke: var(--cyan); stroke-width: 2; }
+.tree-node-internal circle { fill: rgba(179,136,255,0.18); stroke: var(--purple); stroke-width: 1.5; stroke-dasharray: 5 3; }
+.tree-node text            { font-family: var(--font-mono); font-size: 11px; text-anchor: middle; dominant-baseline: middle; }
+.tree-node .char-label     { font-size: 13px; font-weight: 700; fill: var(--cyan); }
+.tree-node .freq-label     { fill: var(--text-secondary); font-size: 11px; }
+.tree-edge                 { stroke: rgba(255,255,255,0.2); stroke-width: 1.5; fill: none; }
+.edge-label                { font-size: 12px; font-weight: 700; font-family: var(--font-mono); }
+.edge-label-0              { fill: var(--cyan); }
+.edge-label-1              { fill: var(--amber); }
+/* No CSS animation on .tree-node — CSS animation overwrites SVG transform
+   attribute, collapsing nodes to (0,0). Fade-in is done via JS timeout. */
 
 /* ─── Step Controls ────────────────────────────────────────── */
 .step-controls {
