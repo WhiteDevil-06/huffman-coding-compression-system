@@ -140,6 +140,7 @@ body::before {
 .tag-amber  { color: var(--amber);  border-color: rgba(255,179,0,0.3);   background: rgba(255,179,0,0.06); }
 .tag-purple { color: var(--purple); border-color: rgba(179,136,255,0.3); background: rgba(179,136,255,0.06); }
 .tag-green  { color: var(--green);  border-color: rgba(0,230,118,0.3);   background: rgba(0,230,118,0.06); }
+.tag-red    { color: var(--red);    border-color: rgba(255,82,82,0.3);   background: rgba(255,82,82,0.06); }
 
 /* ─── Navigation Tabs ──────────────────────────────────────── */
 .nav-tabs {

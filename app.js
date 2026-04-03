@@ -61,6 +61,10 @@ function encodeText() {
   renderActiveAlgorithm();
   renderComparisonTable(lastResults.huffman, lastResults.sf);
 
+  // Show export buttons
+  document.getElementById('btn-export-codes').style.display = '';
+  document.getElementById('btn-export-bits').style.display = '';
+
   showToast('✓ Encoded successfully!');
   document.getElementById('results-section').style.display = 'block';
   document.getElementById('cmp-empty').style.display = 'none';
@@ -77,6 +81,8 @@ function renderActiveAlgorithm() {
   renderBitStream(res.encoded);
   renderTreeFull(res);
   updateDecoderCodebook(res);
+  applyTabIsolation();
+  startFactCarousels();
 
   const isSF = currentAlgorithm === 'sf';
   document.querySelector('#panel-encoder h2').innerHTML = isSF ? '🔒 Shannon-Fano Encoder' : '🔒 Huffman Encoder';
@@ -366,6 +372,172 @@ function escHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ─── Rotating Fact Carousels ──────────────────────────────────
+const FACTS = {
+  huffman: [
+    {
+      title: 'Key Insight: Greedy Optimality',
+      text: 'Huffman assigns shorter codes to frequent characters via a Min-Heap greedy merge — provably achieving the minimum possible total encoding bits for symbol-by-symbol encoding.'
+    },
+    {
+      title: 'Exchange Argument',
+      text: 'Any optimal prefix-free tree must place the two rarest symbols as siblings at the deepest level. Huffman guarantees this by always merging the two lowest-frequency nodes first.'
+    },
+    {
+      title: 'Entropy Bound',
+      text: 'Huffman coding achieves an expected code length L* satisfying H(X) ≤ L* < H(X)+1, where H(X) is the Shannon entropy — within just 1 bit per symbol of the theoretical minimum.'
+    },
+    {
+      title: 'Real-World Use',
+      text: 'Huffman is embedded in JPEG, MP3, ZIP, and HTTP/2 HPACK. It is the entropy coding stage inside DEFLATE — the algorithm powering most of the world\'s file compression.'
+    }
+  ],
+  sf: [
+    {
+      title: 'Key Insight: Divide & Conquer',
+      text: 'Shannon-Fano splits characters into two groups with equal probability sums, assigning 0/1 prefixes recursively top-down — a heuristic that is fast but not always optimal.'
+    },
+    {
+      title: 'Why It Can Fail',
+      text: 'Equal-probability splitting sometimes assigns shorter codes to less frequent characters. Huffman\'s bottom-up greedy approach avoids this by irrevocably placing the rarest characters deepest.'
+    },
+    {
+      title: 'Historical Significance',
+      text: 'Shannon-Fano was proposed in Claude Shannon\'s landmark 1948 paper "A Mathematical Theory of Communication" — the founding document of information theory.'
+    },
+    {
+      title: 'Sub-Optimality',
+      text: 'Shannon-Fano\'s expected code length L always satisfies L ≥ L* (Huffman). For heavily skewed distributions, Shannon-Fano can produce significantly more bits than Huffman.'
+    }
+  ]
+};
+
+const DECODER_FACTS = {
+  huffman: [
+    {
+      title: 'Why Prefix-Free Decoding Works',
+      text: 'Huffman codes are prefix-free: no codeword is a prefix of another. Walk the tree bit-by-bit — Left on 0, Right on 1 — and emit a character whenever you reach a leaf. No lookahead or separators needed.'
+    },
+    {
+      title: 'Unique Decodability',
+      text: 'Because Huffman codes come from root-to-leaf paths in a binary tree, no codeword can be an ancestor of another. This structural guarantee makes decoding unambiguous and lossless.'
+    },
+    {
+      title: 'Decoding Complexity',
+      text: 'Decoding a bitstream of m bits takes O(m · depth) time, where depth ≤ n−1 (n = unique chars). In practice, average depth ≈ H(X), so decoding is extremely fast for natural text.'
+    }
+  ],
+  sf: [
+    {
+      title: 'Why Prefix-Free Decoding Works',
+      text: 'Shannon-Fano also produces prefix-free codes via recursive splitting. Walk the SF tree bit-by-bit — Left on 0, Right on 1 — and emit a character at every leaf. The prefix-free property holds for both algorithms.'
+    },
+    {
+      title: 'Top-Down Tree Walk',
+      text: 'Unlike Huffman trees built bottom-up, the Shannon-Fano tree is built top-down. But the decoding procedure is identical — traverse from root to leaf following each bit in the stream.'
+    },
+    {
+      title: 'Codebook Dependency',
+      text: 'Both algorithms require the receiver to have the same codebook. In practice, the tree (or code table) must be transmitted alongside the compressed data, adding a small overhead O(n log n) bits.'
+    }
+  ]
+};
+
+let _insightIdx = 0;
+let _decoderFactIdx = 0;
+let _insightTimer = null;
+let _decoderTimer = null;
+
+function renderFact(facts, idx, textId, titleId, counterId) {
+  const el = document.getElementById(textId);
+  const titleEl = document.getElementById(titleId);
+  const counterEl = document.getElementById(counterId);
+  if (!el) return;
+  el.style.opacity = '0';
+  setTimeout(() => {
+    if (titleEl) titleEl.textContent = facts[idx].title;
+    el.textContent = facts[idx].text;
+    if (counterEl) counterEl.textContent = `${idx + 1} / ${facts.length}`;
+    el.style.opacity = '1';
+  }, 400);
+}
+
+function startFactCarousels() {
+  const isSF = currentAlgorithm === 'sf';
+  const insightFacts = isSF ? FACTS.sf : FACTS.huffman;
+  const decoderFacts = isSF ? DECODER_FACTS.sf : DECODER_FACTS.huffman;
+
+  _insightIdx = 0;
+  _decoderFactIdx = 0;
+
+  renderFact(insightFacts, _insightIdx, 'insight-text', 'insight-title', 'insight-counter');
+  renderFact(decoderFacts, _decoderFactIdx, 'decoder-fact-text', 'decoder-fact-title', 'decoder-fact-counter');
+
+  clearInterval(_insightTimer);
+  clearInterval(_decoderTimer);
+
+  _insightTimer = setInterval(() => {
+    _insightIdx = (_insightIdx + 1) % insightFacts.length;
+    renderFact(insightFacts, _insightIdx, 'insight-text', 'insight-title', 'insight-counter');
+  }, 15000);
+
+  _decoderTimer = setInterval(() => {
+    _decoderFactIdx = (_decoderFactIdx + 1) % decoderFacts.length;
+    renderFact(decoderFacts, _decoderFactIdx, 'decoder-fact-text', 'decoder-fact-title', 'decoder-fact-counter');
+  }, 15000);
+}
+
+// ─── Tab Isolation ────────────────────────────────────────────
+function applyTabIsolation() {
+  const isSF = currentAlgorithm === 'sf';
+
+  // Theory Cards
+  document.querySelectorAll('.theory-card[data-algo]').forEach(card => {
+    const algo = card.dataset.algo;
+    card.style.display = (algo === 'both' || (isSF && algo === 'sf') || (!isSF && algo === 'huffman')) ? '' : 'none';
+  });
+
+  // Complexity Cards
+  document.querySelectorAll('.complexity-card[data-algo]').forEach(card => {
+    const algo = card.dataset.algo;
+    card.style.display = (algo === 'both' || (isSF && algo === 'sf') || (!isSF && algo === 'huffman')) ? '' : 'none';
+  });
+
+  // Complexity tab heading
+  const h2 = document.getElementById('complexity-h2');
+  const desc = document.getElementById('complexity-desc');
+  if (h2) h2.textContent = isSF ? '📈 Complexity Analysis (Shannon-Fano)' : '📈 Complexity Analysis (Huffman)';
+  if (desc) desc.textContent = isSF
+    ? 'Detailed breakdown of time and space complexity for each phase of Shannon-Fano Coding.'
+    : 'Detailed breakdown of time and space complexity for each phase of Huffman Coding.';
+}
+
+// ─── Export ───────────────────────────────────────────────────
+function exportCodebook() {
+  const res = lastResults[currentAlgorithm];
+  if (!res) { showToast('Encode something first!'); return; }
+  const algo = currentAlgorithm === 'sf' ? 'shannon_fano' : 'huffman';
+  const obj = { algorithm: algo, codes: res.codes, stats: res.stats };
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${algo}_codebook.json`;
+  a.click();
+  showToast('✓ Codebook downloaded!');
+}
+
+function exportBits() {
+  const res = lastResults[currentAlgorithm];
+  if (!res) { showToast('Encode something first!'); return; }
+  const algo = currentAlgorithm === 'sf' ? 'shannon_fano' : 'huffman';
+  const blob = new Blob([res.encoded], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${algo}_encoded_bits.txt`;
+  a.click();
+  showToast('✓ Bits downloaded!');
+}
+
 // ─── Sample texts ─────────────────────────────────────────────
 const SAMPLES = [
   'hello world',
@@ -390,7 +562,9 @@ function loadSample() {
 document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initTreeTab();
-  
+  applyTabIsolation();
+  startFactCarousels();
+
   // Initially hide comparison table element headers till data loads
   const cmpTableEl = document.getElementById('cmp-table');
   if (cmpTableEl) cmpTableEl.parentElement.style.display = 'none';
@@ -398,6 +572,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-encode').addEventListener('click', encodeText);
   document.getElementById('btn-sample').addEventListener('click', loadSample);
   document.getElementById('btn-decode').addEventListener('click', decodeText);
+
+  document.getElementById('btn-export-codes').addEventListener('click', exportCodebook);
+  document.getElementById('btn-export-bits').addEventListener('click', exportBits);
+
   document.getElementById('btn-copy-bits').addEventListener('click', () => {
     const bits = document.getElementById('bit-stream').textContent.replace(/\s/g, '');
     if (bits) copyText(bits, 'Bits copied!');
@@ -417,3 +595,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Hide results initially
   document.getElementById('results-section').style.display = 'none';
 });
+

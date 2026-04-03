@@ -79,6 +79,8 @@
         <div class="btn-group">
           <button class="btn btn-primary" id="btn-encode">⚡ Encode</button>
           <button class="btn btn-secondary" id="btn-sample">🎲 Load Sample</button>
+          <button class="btn btn-secondary" id="btn-export-codes" style="display:none">⬇ Export Codebook</button>
+          <button class="btn btn-secondary" id="btn-export-bits" style="display:none">⬇ Export Bits</button>
         </div>
       </div>
 
@@ -223,11 +225,12 @@
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Key Insight</div>
-        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.8">
-          Huffman Coding assigns <strong style="color:var(--cyan)">shorter codes to frequent characters</strong> and longer codes to rare ones. This is the Greedy property — by always merging the two smallest-frequency nodes, we minimize the total weighted path length (= total encoding bits), which is provably optimal for symbol-by-symbol encoding.
-        </p>
+      <div class="card" id="card-key-insight">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span id="insight-title">Key Insight</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);font-weight:normal" id="insight-counter">1 / 3</span>
+        </div>
+        <p id="insight-text" style="color:var(--text-secondary);font-size:0.9rem;line-height:1.8;transition:opacity 0.4s"></p>
       </div>
     </section>
 
@@ -267,11 +270,12 @@ Encode text first to auto-load codebook here.
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Why Prefix-Free Decoding Works</div>
-        <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.8">
-          Huffman codes have the <strong style="color:var(--cyan)">prefix-free property</strong>: no codeword is a prefix of another. This means we can decode a bitstream <em>unambiguously</em> by walking the tree bit-by-bit — going Left on <strong style="color:var(--cyan)">0</strong>, Right on <strong style="color:var(--amber)">1</strong> — and emitting the character whenever we reach a leaf. No lookahead or separators needed.
-        </p>
+      <div class="card" id="card-decoder-fact">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span id="decoder-fact-title">Why Prefix-Free Decoding Works</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);font-weight:normal" id="decoder-fact-counter">1 / 3</span>
+        </div>
+        <p id="decoder-fact-text" style="color:var(--text-secondary);font-size:0.875rem;line-height:1.8;transition:opacity 0.4s"></p>
       </div>
     </section>
 
@@ -284,80 +288,93 @@ Encode text first to auto-load codebook here.
 
       <div class="theory-grid">
 
-        <!-- What is a Greedy Algorithm -->
-        <div class="theory-card">
+        <!-- Huffman-only cards -->
+        <div class="theory-card" data-algo="huffman">
           <div class="theory-card-icon">🧠</div>
           <h3>Greedy Strategy (Huffman)</h3>
           <p>A greedy algorithm makes the <strong>locally optimal choice</strong> at each step. In Huffman, the choice is to continually merge the two smallest frequency nodes from a Min-Heap. This bottom-up approach guarantees a globally optimal layout.</p>
-          <div class="highlight-box">
-            Provably optimal: It achieves the mathematical minimum expected code length.
-          </div>
+          <div class="highlight-box">Provably optimal: achieves the mathematical minimum expected code length.</div>
         </div>
 
-        <!-- Divide and Conquer -->
-        <div class="theory-card">
+        <div class="theory-card" data-algo="huffman">
+          <div class="theory-card-icon">⚡</div>
+          <h3>The Greedy Choice Property</h3>
+          <p>The greedy choice in Huffman — always merging the two nodes with lowest frequency — is <em>irrevocable</em> and can be proven to lead to a globally optimal tree via the <strong>Exchange Argument</strong>.</p>
+          <div class="highlight-box">If two rarest symbols are not siblings at the deepest level, swapping them reduces total cost — contradiction. ∴ greedy is safe.</div>
+        </div>
+
+        <!-- Shannon-Fano-only cards -->
+        <div class="theory-card" data-algo="sf">
           <div class="theory-card-icon">✂️</div>
           <h3>Divide & Conquer (Shannon-Fano)</h3>
-          <p>A top-down recursive heuristic algorithm. It sorts the character set by frequency, then repeatedly divides the set into two partitions such that the sum of the probabilities is as close as possible.</p>
-          <div class="highlight-box">
-            Sub-optimal: While fast, Shannon-Fano does not always achieve the lowest possible expected depth.
-          </div>
+          <p>Top-down recursive heuristic: sort characters by frequency, then repeatedly split into two groups whose probability sums are as equal as possible. Assign <strong>0</strong> to the left group and <strong>1</strong> to the right.</p>
+          <div class="highlight-box">Sub-optimal: equal splitting does not guarantee minimum expected code length.</div>
         </div>
 
-        <!-- Why Huffman is Greedy -->
-        <div class="theory-card">
-          <div class="theory-card-icon">⚡</div>
-          <h3>Why Huffman scales better</h3>
-          <p>The <strong>Greedy Choice</strong> in Huffman is irrevocable. Always picking the smallest two ensures rarity stays at the bottom. Shannon-Fano attempts to balance the load, but its strict division occasionally misplaces low-frequency elements!</p>
+        <div class="theory-card" data-algo="sf">
+          <div class="theory-card-icon">⚖️</div>
+          <h3>Why Shannon-Fano Can Fail</h3>
+          <p>The balanced-split heuristic occasionally assigns a <em>shorter</em> code to a less frequent character and a <em>longer</em> code to a more frequent one — directly contradicting the optimal assignment. Huffman's bottom-up merge avoids this.</p>
+          <div class="highlight-box">Shannon-Fano's expected length L satisfies H(X) ≤ L, but L may exceed Huffman's L* significantly for skewed distributions.</div>
         </div>
 
-        <!-- Optimality Proof -->
-        <div class="theory-card">
+        <!-- Shared cards -->
+        <div class="theory-card" data-algo="both">
           <div class="theory-card-icon">✅</div>
-          <h3>Proof of Optimality (Exchange Argument)</h3>
-          <p>We prove Huffman produces an optimal prefix-free code:</p>
-          <ol class="proof-steps">
-            <li>In any optimal tree, the two symbols with <strong>lowest frequency</strong> must be siblings at the deepest level.</li>
-            <li>Assume they are not — then swapping them with the actual deepest pair <strong>cannot increase</strong> the total cost (since lower-freq symbols get longer codes → cost doesn't increase).</li>
-            <li>This shows the greedy choice (merge smallest two) is always safe — it leads to an optimal solution.</li>
-            <li>By <strong>optimal substructure</strong>, after merging f₁+f₂, the reduced problem (with the merged node) also has an optimal solution, which Huffman finds recursively.</li>
-            <li>∴ Huffman Coding produces a minimum-cost prefix-free binary code. ∎</li>
-          </ol>
+          <h3>Proof of Optimality (Huffman — Exchange Argument)</h3>
+          <p>In any optimal tree, the two rarest symbols must be siblings at the deepest level. If not, swapping them can only reduce (or keep equal) total cost — contradiction. ∴ Huffman's greedy merge is always safe. ∎</p>
         </div>
 
-        <!-- Algorithm Steps -->
-        <div class="theory-card">
+        <div class="theory-card" data-algo="huffman">
           <div class="theory-card-icon">🔢</div>
-          <h3>Algorithm Steps</h3>
+          <h3>Huffman Algorithm Steps</h3>
           <ol class="proof-steps">
             <li>Count character frequencies → O(n)</li>
-            <li>Insert all characters into a <strong>Min-Heap</strong> as leaf nodes → O(n)</li>
-            <li>While heap has &gt;1 node: extract two minimums, merge into internal node with combined frequency, re-insert → O(n log n)</li>
-            <li>DFS the tree to assign binary codes → O(n)</li>
-            <li>Encode original text using the code table → O(n)</li>
+            <li>Insert into a <strong>Min-Heap</strong> as leaf nodes → O(n)</li>
+            <li>Repeat n-1 times: extract two minimums, merge, re-insert → O(n log n)</li>
+            <li>DFS to assign binary codes → O(n)</li>
+            <li>Encode text → O(m)</li>
           </ol>
         </div>
 
-        <!-- Prefix-Free Property -->
-        <div class="theory-card">
-          <div class="theory-card-icon">🔑</div>
-          <h3>Prefix-Free (Uniquely Decodable)</h3>
-          <p>Huffman codes are <strong>prefix codes</strong> — no codeword is a prefix of another. This is guaranteed by the binary tree structure: codes are paths from root to leaf, and a leaf cannot be an ancestor of another leaf.</p>
-          <div class="highlight-box">
-            This means the encoded bitstream can be decoded <strong>unambiguously</strong> without any separator characters — just walk the tree bit by bit.
-          </div>
+        <div class="theory-card" data-algo="sf">
+          <div class="theory-card-icon">🔢</div>
+          <h3>Shannon-Fano Algorithm Steps</h3>
+          <ol class="proof-steps">
+            <li>Count character frequencies → O(n)</li>
+            <li>Sort characters by frequency (descending) → O(n log n)</li>
+            <li>Find the split point that minimises frequency-sum difference → O(n)</li>
+            <li>Assign <strong>0</strong> to left group, <strong>1</strong> to right group</li>
+            <li>Recurse on each group until single symbols remain</li>
+          </ol>
         </div>
 
-        <!-- Applications -->
-        <div class="theory-card">
+        <div class="theory-card" data-algo="both">
+          <div class="theory-card-icon">🔑</div>
+          <h3>Prefix-Free (Uniquely Decodable)</h3>
+          <p>Both algorithms produce <strong>prefix codes</strong> — no codeword is prefix of another. This guarantees unambiguous decoding by walking the tree bit-by-bit without lookahead or separators.</p>
+          <div class="highlight-box">Left on 0, Right on 1 — emit character at each leaf.</div>
+        </div>
+
+        <div class="theory-card" data-algo="huffman">
           <div class="theory-card-icon">🌍</div>
-          <h3>Real-World Applications</h3>
+          <h3>Real-World Applications of Huffman</h3>
           <ul>
-            <li><strong>JPEG, PNG, MP3</strong> — Huffman is the entropy coding stage</li>
+            <li><strong>JPEG, PNG, MP3</strong> — entropy coding stage</li>
             <li><strong>ZIP / DEFLATE</strong> — combines LZ77 + Huffman</li>
             <li><strong>HTTP/2 HPACK</strong> — header compression</li>
-            <li><strong>Fax machines</strong> — Modified Huffman coding (MH)</li>
-            <li><strong>Morse code</strong> — conceptually similar (frequent letters = shorter codes)</li>
+            <li><strong>Fax machines</strong> — Modified Huffman (MH)</li>
+          </ul>
+        </div>
+
+        <div class="theory-card" data-algo="sf">
+          <div class="theory-card-icon">🌍</div>
+          <h3>Real-World Contexts of Shannon-Fano</h3>
+          <ul>
+            <li><strong>Historical compression</strong> — early telecom systems</li>
+            <li><strong>Teaching tool</strong> — illustrates why greedy beats heuristics</li>
+            <li><strong>ZIP (early)</strong> — some early variants used SF-style splitting</li>
+            <li><strong>Information theory</strong> — foundational to Claude Shannon's 1948 paper</li>
           </ul>
         </div>
 
@@ -367,131 +384,116 @@ Encode text first to auto-load codebook here.
     <!-- ── COMPLEXITY ─────────────────────────────────────── -->
     <section class="tab-panel" id="panel-complexity" role="tabpanel">
       <div class="section-header">
-        <h2>📈 Complexity Analysis</h2>
-        <p>Detailed breakdown of time and space complexity for each phase of the Huffman Coding algorithm.</p>
+        <h2 id="complexity-h2">📈 Complexity Analysis</h2>
+        <p id="complexity-desc">Detailed breakdown of time and space complexity for each phase of the algorithm.</p>
       </div>
 
       <div class="complexity-grid">
 
-        <!-- Overall Time -->
-        <div class="complexity-card">
+        <!-- Overall Time — Huffman -->
+        <div class="complexity-card" data-algo="huffman">
           <div class="complexity-badge">O(n log n)</div>
-          <h3>Overall Time Complexity</h3>
+          <h3>Overall Time Complexity (Huffman)</h3>
           <ul class="phase-list">
-            <li class="phase-item">
-              <span class="phase-name">Build Frequency Map</span>
-              <span class="phase-cost">O(n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Build Min-Heap (n leaves)</span>
-              <span class="phase-cost">O(n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">n−1 Extract-Min operations</span>
-              <span class="phase-cost">O(n log n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">n−1 Insert operations</span>
-              <span class="phase-cost">O(n log n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">DFS to generate codes</span>
-              <span class="phase-cost">O(n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Encode text</span>
-              <span class="phase-cost">O(m)</span>
-            </li>
+            <li class="phase-item"><span class="phase-name">Build Frequency Map</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Build Min-Heap</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">n−1 Extract-Min ops</span><span class="phase-cost">O(n log n)</span></li>
+            <li class="phase-item"><span class="phase-name">n−1 Insert ops</span><span class="phase-cost">O(n log n)</span></li>
+            <li class="phase-item"><span class="phase-name">DFS code assignment</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Encode text</span><span class="phase-cost">O(m)</span></li>
           </ul>
-          <div class="highlight-box" style="margin-top:14px">
-            Bottleneck: heap operations dominate → <strong>O(n log n)</strong><br>
-            where n = number of distinct characters
-          </div>
+          <div class="highlight-box" style="margin-top:14px">Bottleneck: heap ops → <strong>O(n log n)</strong> where n = distinct chars</div>
         </div>
 
-        <!-- Space -->
-        <div class="complexity-card">
+        <!-- Overall Time — Shannon-Fano -->
+        <div class="complexity-card" data-algo="sf">
+          <div class="complexity-badge">O(n log n)</div>
+          <h3>Overall Time Complexity (Shannon-Fano)</h3>
+          <ul class="phase-list">
+            <li class="phase-item"><span class="phase-name">Build Frequency Map</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Sort by frequency</span><span class="phase-cost">O(n log n)</span></li>
+            <li class="phase-item"><span class="phase-name">Find split point (per level)</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Recursive splits (O(log n) levels)</span><span class="phase-cost">O(n log n)</span></li>
+            <li class="phase-item"><span class="phase-name">Encode text</span><span class="phase-cost">O(m)</span></li>
+          </ul>
+          <div class="highlight-box" style="margin-top:14px">Bottleneck: initial sort + recursive splits → <strong>O(n log n)</strong></div>
+        </div>
+
+        <!-- Space — Huffman -->
+        <div class="complexity-card" data-algo="huffman">
           <div class="complexity-badge">O(n)</div>
-          <h3>Space Complexity</h3>
+          <h3>Space Complexity (Huffman)</h3>
           <ul class="phase-list">
-            <li class="phase-item">
-              <span class="phase-name">Frequency map</span>
-              <span class="phase-cost">O(n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Min-Heap (max 2n−1 nodes)</span>
-              <span class="phase-cost">O(n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Huffman Tree nodes</span>
-              <span class="phase-cost">O(n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Code table</span>
-              <span class="phase-cost">O(n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Encoded output</span>
-              <span class="phase-cost">O(m)</span>
-            </li>
+            <li class="phase-item"><span class="phase-name">Frequency map</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Min-Heap (max 2n−1 nodes)</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Tree nodes</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Code table</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Encoded output</span><span class="phase-cost">O(m)</span></li>
           </ul>
-          <div class="highlight-box" style="margin-top:14px">
-            n = distinct chars, m = input text length.<br>
-            Total: <strong>O(n + m)</strong>
-          </div>
+          <div class="highlight-box" style="margin-top:14px">Total: <strong>O(n + m)</strong></div>
         </div>
 
-        <!-- Heap Operations -->
-        <div class="complexity-card">
+        <!-- Space — Shannon-Fano -->
+        <div class="complexity-card" data-algo="sf">
+          <div class="complexity-badge">O(n)</div>
+          <h3>Space Complexity (Shannon-Fano)</h3>
+          <ul class="phase-list">
+            <li class="phase-item"><span class="phase-name">Frequency map</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Sorted array</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Recursion stack (O(log n) depth)</span><span class="phase-cost">O(log n)</span></li>
+            <li class="phase-item"><span class="phase-name">SF Tree nodes</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Code table</span><span class="phase-cost">O(n)</span></li>
+          </ul>
+          <div class="highlight-box" style="margin-top:14px">Total: <strong>O(n + m)</strong> — comparable to Huffman</div>
+        </div>
+
+        <!-- Heap Operations — Huffman only -->
+        <div class="complexity-card" data-algo="huffman">
           <div class="complexity-badge">O(log n)</div>
           <h3>Min-Heap Operations</h3>
           <ul class="phase-list">
-            <li class="phase-item">
-              <span class="phase-name">Insert (bubble-up)</span>
-              <span class="phase-cost">O(log n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Extract-Min (sink-down)</span>
-              <span class="phase-cost">O(log n)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Peek (view min)</span>
-              <span class="phase-cost">O(1)</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Build heap (n items)</span>
-              <span class="phase-cost">O(n)</span>
-            </li>
+            <li class="phase-item"><span class="phase-name">Insert (bubble-up)</span><span class="phase-cost">O(log n)</span></li>
+            <li class="phase-item"><span class="phase-name">Extract-Min (sink-down)</span><span class="phase-cost">O(log n)</span></li>
+            <li class="phase-item"><span class="phase-name">Peek (view min)</span><span class="phase-cost">O(1)</span></li>
+            <li class="phase-item"><span class="phase-name">Build heap (n items)</span><span class="phase-cost">O(n)</span></li>
           </ul>
-          <div class="highlight-box" style="margin-top:14px">
-            The min-heap is the core data structure enabling the greedy O(n log n) performance.
-          </div>
+          <div class="highlight-box" style="margin-top:14px">The min-heap is the core data structure enabling greedy O(n log n) performance.</div>
         </div>
 
-        <!-- Compression Bounds -->
-        <div class="complexity-card">
-          <div class="complexity-badge">≤ H(X)+1</div>
-          <h3>Compression Quality</h3>
-          <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:14px">
-            Huffman achieves expected code length L* where:
-          </p>
+        <!-- Recursion Depth — SF only -->
+        <div class="complexity-card" data-algo="sf">
+          <div class="complexity-badge">O(log n)</div>
+          <h3>Recursion Depth</h3>
           <ul class="phase-list">
-            <li class="phase-item">
-              <span class="phase-name">Shannon Entropy H(X)</span>
-              <span class="phase-cost" style="color:var(--cyan)">Lower bound</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Huffman L*</span>
-              <span class="phase-cost" style="color:var(--green)">H(X) ≤ L* &lt; H(X)+1</span>
-            </li>
-            <li class="phase-item">
-              <span class="phase-name">Fixed-length (8-bit)</span>
-              <span class="phase-cost" style="color:var(--text-muted)">8 bits/char</span>
-            </li>
+            <li class="phase-item"><span class="phase-name">Best case (balanced splits)</span><span class="phase-cost">O(log n)</span></li>
+            <li class="phase-item"><span class="phase-name">Worst case (skewed splits)</span><span class="phase-cost">O(n)</span></li>
+            <li class="phase-item"><span class="phase-name">Stack frame size</span><span class="phase-cost">O(1)</span></li>
           </ul>
-          <div class="highlight-box" style="margin-top:14px">
-            Huffman is within <strong>1 bit per symbol</strong> of the theoretical minimum (Shannon entropy). For grouped symbols, it approaches the entropy limit.
-          </div>
+          <div class="highlight-box" style="margin-top:14px">Unbalanced frequency distributions can degrade recursion depth to O(n), making Shannon-Fano less predictable than Huffman for extreme inputs.</div>
+        </div>
+
+        <!-- Compression Quality — Huffman -->
+        <div class="complexity-card" data-algo="huffman">
+          <div class="complexity-badge">≤ H(X)+1</div>
+          <h3>Compression Quality (Huffman)</h3>
+          <ul class="phase-list">
+            <li class="phase-item"><span class="phase-name">Shannon Entropy H(X)</span><span class="phase-cost" style="color:var(--cyan)">Lower bound</span></li>
+            <li class="phase-item"><span class="phase-name">Huffman L*</span><span class="phase-cost" style="color:var(--green)">H(X) ≤ L* &lt; H(X)+1</span></li>
+            <li class="phase-item"><span class="phase-name">Fixed-length (8-bit)</span><span class="phase-cost" style="color:var(--text-muted)">8 bits/char</span></li>
+          </ul>
+          <div class="highlight-box" style="margin-top:14px">Huffman is within <strong>1 bit per symbol</strong> of the Shannon entropy limit — the theoretical minimum.</div>
+        </div>
+
+        <!-- Compression Quality — SF -->
+        <div class="complexity-card" data-algo="sf">
+          <div class="complexity-badge">&gt; H(X)</div>
+          <h3>Compression Quality (Shannon-Fano)</h3>
+          <ul class="phase-list">
+            <li class="phase-item"><span class="phase-name">Shannon Entropy H(X)</span><span class="phase-cost" style="color:var(--cyan)">Lower bound</span></li>
+            <li class="phase-item"><span class="phase-name">Shannon-Fano L</span><span class="phase-cost" style="color:var(--amber)">H(X) ≤ L (no tight bound)</span></li>
+            <li class="phase-item"><span class="phase-name">vs Huffman</span><span class="phase-cost" style="color:var(--red)">L ≥ L* always</span></li>
+          </ul>
+          <div class="highlight-box" style="margin-top:14px">Shannon-Fano is never better than Huffman and may require significantly more bits for skewed distributions.</div>
         </div>
 
       </div><!-- /complexity-grid -->
