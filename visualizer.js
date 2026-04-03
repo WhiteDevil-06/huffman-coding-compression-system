@@ -248,24 +248,58 @@ const Visualizer = (() => {
   function showStep(index) {
     if (!_svgEl || !_steps) return;
     
-    // Hide all internal nodes and all edges instantly
-    const internals = _svgEl.querySelectorAll('.tree-node-internal');
-    const edges = _svgEl.querySelectorAll('.tree-edge-group');
-    internals.forEach(el => el.style.opacity = '0');
-    edges.forEach(el => el.style.opacity = '0');
-    
-    // Loop through steps 0 up to `index` and reveal corresponding elements
-    for (let i = 0; i <= index; i++) {
-      const step = _steps[i];
-      if (step.type === 'merge') {
-        const nodeEl = _svgEl.querySelector(`g[data-id="n${step.merged.id}"]`);
-        if (nodeEl) nodeEl.style.opacity = '1';
-        
-        const edgeLeft = _svgEl.querySelector(`g[data-child="n${step.left.id}"]`);
-        if (edgeLeft) edgeLeft.style.opacity = '1';
-        
-        const edgeRight = _svgEl.querySelector(`g[data-child="n${step.right.id}"]`);
-        if (edgeRight) edgeRight.style.opacity = '1';
+    const isTopDown = _steps.some(s => s.type === 'split');
+
+    if (isTopDown) {
+      // Top-Down (Shannon-Fano): Hide everything initially
+      _svgEl.querySelectorAll('.tree-node').forEach(el => el.style.opacity = '0');
+      _svgEl.querySelectorAll('.tree-edge-group').forEach(el => el.style.opacity = '0');
+
+      // The root is always visible from the beginning
+      if (_fullRoot) {
+        const rootEl = _svgEl.querySelector(`g[data-id="n${_fullRoot.id}"]`);
+        if (rootEl) rootEl.style.opacity = '1';
+      }
+
+      for (let i = 0; i <= index; i++) {
+        const step = _steps[i];
+        if (step.type === 'split') {
+          if (step.left) {
+            const leftEl = _svgEl.querySelector(`g[data-id="n${step.left.id}"]`);
+            if (leftEl) leftEl.style.opacity = '1';
+            const edgeLeft = _svgEl.querySelector(`g[data-child="n${step.left.id}"]`);
+            if (edgeLeft) edgeLeft.style.opacity = '1';
+          }
+          if (step.right) {
+            const rightEl = _svgEl.querySelector(`g[data-id="n${step.right.id}"]`);
+            if (rightEl) rightEl.style.opacity = '1';
+            const edgeRight = _svgEl.querySelector(`g[data-child="n${step.right.id}"]`);
+            if (edgeRight) edgeRight.style.opacity = '1';
+          }
+        }
+      }
+    } else {
+      // Bottom-Up (Huffman): Hide internal nodes and edges originally
+      const internals = _svgEl.querySelectorAll('.tree-node-internal');
+      const edges = _svgEl.querySelectorAll('.tree-edge-group');
+      const leaves = _svgEl.querySelectorAll('.tree-node-leaf');
+      // Ensure leaves are always visible
+      leaves.forEach(el => el.style.opacity = '1');
+      internals.forEach(el => el.style.opacity = '0');
+      edges.forEach(el => el.style.opacity = '0');
+      
+      for (let i = 0; i <= index; i++) {
+        const step = _steps[i];
+        if (step.type === 'merge') {
+          const nodeEl = _svgEl.querySelector(`g[data-id="n${step.merged.id}"]`);
+          if (nodeEl) nodeEl.style.opacity = '1';
+          
+          const edgeLeft = _svgEl.querySelector(`g[data-child="n${step.left.id}"]`);
+          if (edgeLeft) edgeLeft.style.opacity = '1';
+          
+          const edgeRight = _svgEl.querySelector(`g[data-child="n${step.right.id}"]`);
+          if (edgeRight) edgeRight.style.opacity = '1';
+        }
       }
     }
   }

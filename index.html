@@ -14,12 +14,12 @@
        HERO
   ══════════════════════════════════════════════ -->
   <header class="hero">
-    <div class="hero-badge">
+    <div class="hero-badge" id="hero-badge">
       <span class="dot"></span> DAA Project · Greedy Algorithm
     </div>
-    <h1>Huffman Coding<br>Compression System</h1>
-    <p>Interactive demonstration of a <strong>Greedy Algorithm</strong> that builds optimal, prefix-free, variable-length codes — proved to achieve minimum expected encoding length.</p>
-    <div class="hero-tags">
+    <h1 id="hero-title">Huffman Coding<br>Compression System</h1>
+    <p id="hero-desc">Interactive demonstration of a <strong>Greedy Algorithm</strong> that builds optimal, prefix-free, variable-length codes — proved to achieve minimum expected encoding length.</p>
+    <div class="hero-tags" id="hero-tags">
       <span class="tag tag-cyan">⏱ O(n log n) Time</span>
       <span class="tag tag-amber">💾 O(n) Space</span>
       <span class="tag tag-purple">🌲 Min-Heap</span>
@@ -65,7 +65,13 @@
 
       <!-- Input -->
       <div class="card">
-        <div class="card-title">Input Text</div>
+        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Input Text</span>
+          <div class="algo-toggle" style="font-size: 0.9rem; font-weight: normal;">
+            <label style="cursor:pointer;"><input type="radio" name="algorithm" value="huffman" checked style="margin-right:4px;">Huffman</label>
+            <label style="cursor:pointer; margin-left:14px;"><input type="radio" name="algorithm" value="sf" style="margin-right:4px;">Shannon-Fano</label>
+          </div>
+        </div>
         <div class="input-group">
           <textarea id="input-text" rows="4" placeholder="Type or paste your text here… (Ctrl+Enter to encode)"
                     aria-label="Input text to encode"></textarea>
@@ -203,11 +209,12 @@
                 <th>Char</th>
                 <th>Freq</th>
                 <th>Prob</th>
-                <th>Fixed Code (ASCII)</th>
-                <th>Fixed Bits × Count</th>
-                <th>Huffman Code</th>
-                <th>Huff Bits × Count</th>
-                <th>Saved</th>
+                <th>Fixed Code</th>
+                <th>Fixed Total</th>
+                <th>Huff Code</th>
+                <th>Huff Total</th>
+                <th>SF Code</th>
+                <th>SF Total</th>
               </tr>
             </thead>
             <tbody id="cmp-table-body"></tbody>
@@ -272,7 +279,7 @@ Encode text first to auto-load codebook here.
     <section class="tab-panel" id="panel-theory" role="tabpanel">
       <div class="section-header">
         <h2>📚 Algorithm Theory</h2>
-        <p>Understanding <em>why</em> Huffman Coding is a Greedy Algorithm and how its optimality is proven.</p>
+        <p>Understanding <em>why</em> Huffman Coding is a Greedy Algorithm, and how Shannon-Fano utilizes Divide & Conquer.</p>
       </div>
 
       <div class="theory-grid">
@@ -280,26 +287,28 @@ Encode text first to auto-load codebook here.
         <!-- What is a Greedy Algorithm -->
         <div class="theory-card">
           <div class="theory-card-icon">🧠</div>
-          <h3>What is a Greedy Algorithm?</h3>
-          <p>A greedy algorithm makes the <strong>locally optimal choice</strong> at each step, hoping to find a global optimum. Key properties:</p>
-          <ul style="margin-top:10px">
-            <li><strong>Greedy Choice Property</strong> — A locally optimal choice leads to a globally optimal solution.</li>
-            <li><strong>Optimal Substructure</strong> — An optimal solution contains optimal solutions to its subproblems.</li>
-          </ul>
+          <h3>Greedy Strategy (Huffman)</h3>
+          <p>A greedy algorithm makes the <strong>locally optimal choice</strong> at each step. In Huffman, the choice is to continually merge the two smallest frequency nodes from a Min-Heap. This bottom-up approach guarantees a globally optimal layout.</p>
           <div class="highlight-box">
-            Huffman Coding satisfies both — making it a textbook-perfect greedy algorithm.
+            Provably optimal: It achieves the mathematical minimum expected code length.
+          </div>
+        </div>
+
+        <!-- Divide and Conquer -->
+        <div class="theory-card">
+          <div class="theory-card-icon">✂️</div>
+          <h3>Divide & Conquer (Shannon-Fano)</h3>
+          <p>A top-down recursive heuristic algorithm. It sorts the character set by frequency, then repeatedly divides the set into two partitions such that the sum of the probabilities is as close as possible.</p>
+          <div class="highlight-box">
+            Sub-optimal: While fast, Shannon-Fano does not always achieve the lowest possible expected depth.
           </div>
         </div>
 
         <!-- Why Huffman is Greedy -->
         <div class="theory-card">
           <div class="theory-card-icon">⚡</div>
-          <h3>Why Huffman is Greedy</h3>
-          <p>The <strong>Greedy Choice</strong> in Huffman is:</p>
-          <div class="highlight-box" style="margin:10px 0">
-            "At each step, merge the two nodes with the <strong>minimum frequency</strong>."
-          </div>
-          <p>This local decision (always pick the smallest two) is made <em>n-1</em> times. Each decision is irrevocable — we never reconsider a merge. This greedy structure builds the tree from the bottom up, ensuring the rarest characters end up deepest in the tree (longest codes).</p>
+          <h3>Why Huffman scales better</h3>
+          <p>The <strong>Greedy Choice</strong> in Huffman is irrevocable. Always picking the smallest two ensures rarity stays at the bottom. Shannon-Fano attempts to balance the load, but its strict division occasionally misplaces low-frequency elements!</p>
         </div>
 
         <!-- Optimality Proof -->
@@ -566,6 +575,7 @@ Encode text first to auto-load codebook here.
        SCRIPTS (order matters)
   ══════════════════════════════════════════════ -->
   <script src="huffman.js"></script>
+  <script src="shannon_fano.js"></script>
   <script src="visualizer.js"></script>
   <script src="app.js"></script>
 
