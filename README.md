@@ -1,33 +1,3 @@
 # Huffman vs. Shannon-Fano Coding Visualizer (DAA Project)
 
 An interactive tool for comparing Greedy (Huffman) and Divide & Conquer (Shannon-Fano) compression algorithms.
-
-## 🚀 Roadmap
-
-### ✅ Completed (Milestone 1)
-- [x] Initial Huffman Coding engine & tree visualizer.
-- [x] Web interface with tabbed navigation (Encoder, Tree, Decoder).
-- [x] Basic Statistics and Frequency Mapping.
-
-### ✅ Completed (Milestone 2 - Current Session)
-- [x] **Shannon-Fano Implementation:** Built the core top-down splitting algorithm from scratch.
-- [x] **Algorithm Toggle:** Integrated live radio buttons to hot-swap between Huffman and Shannon-Fano.
-- [x] **Dynamic Hero & UI:** Hero section and tab headers now update contextually based on the active algorithm.
-- [x] **Visualizer Upgrades:** Implemented top-down split animations for Shannon-Fano trees.
-- [x] **Comparison Grid:** 3-way bit comparison (ASCII vs Huffman vs Shannon-Fano).
-- [x] **UI Bug Fixes:** Fixed Tree Reset button, updated Theory content, and added 10+ torture-test samples.
-
-### ⏳ Future (Next Sessions)
-- [ ] **Tab Isolation:** strictly filter Theory & Complexity content based on the active algorithm.
-- [ ] **Dynamic Fact Carousels:** Auto-rotating fact boxes for educational depth.
-- [ ] **Export Options:** Download the generated codebook or bitstream as JSON/Binary.
-
-## 📝 Session Log (2026-04-03)
-
-**Objective reached:** Fully integrated Shannon-Fano with full UI parity.
-
-**Key Achievements:**
-- Shannon-Fano algorithm correctly minimizes frequency difference during recursive splits.
-- Tree visualizer now supports both bottom-up (Huffman) and top-down (SF) progressive reveals.
-- Refactored `app.js` into a state-aware controller that handles multi-algorithm datasets.
-- Cleaned up Hero section to dynamically display time/space complexity badges for the active algorithm.
