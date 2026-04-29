@@ -1,0 +1,13 @@
+# Internal Agent Command Center
+.agent/
+
+# Build / OS / Env
+.DS_Store
+Thumbs.db
+node_modules/
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
