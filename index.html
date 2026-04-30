@@ -11,15 +11,51 @@
 <body>
 
   <!-- ══════════════════════════════════════════════
+       GLOBAL NAVIGATION
+  ══════════════════════════════════════════════ -->
+  <nav class="global-nav" aria-label="Global Options">
+    <div class="gn-brand">
+      <span class="dot"></span> DAA Compression System
+    </div>
+    <div class="gn-routes">
+      <button class="gn-btn active" data-route="home">Home</button>
+      <button class="gn-btn" data-route="huffman">Huffman Engine</button>
+      <button class="gn-btn" data-route="sf">Shannon-Fano Engine</button>
+      <button class="gn-btn" data-route="arena">The Arena</button>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════
+       ROUTE: HOME
+  ══════════════════════════════════════════════ -->
+  <div id="route-home" class="route-view active">
+    <header class="hero" style="min-height: 85vh; display: flex; flex-direction: column; justify-content: center;">
+      <div class="hero-badge"><span class="dot"></span> Information Theory</div>
+      <h1>Explore the Limits of<br>Data Compression</h1>
+      <p>An interactive visualization of Greedy vs. Divide & Conquer algorithms.</p>
+      <div class="btn-group" style="justify-content: center; margin-top: 24px;">
+        <button class="btn btn-primary" onclick="appRoute('huffman')">Start Huffman</button>
+        <button class="btn btn-amber" onclick="appRoute('sf')">Start Shannon-Fano</button>
+        <button class="btn btn-secondary" onclick="appRoute('arena')">Enter The Arena</button>
+      </div>
+    </header>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       ROUTE: ENGINE (HUFFMAN / SF)
+  ══════════════════════════════════════════════ -->
+  <div id="route-engine" class="route-view" style="display:none;">
+
+  <!-- ══════════════════════════════════════════════
        HERO
   ══════════════════════════════════════════════ -->
-  <header class="hero">
-    <div class="hero-badge" id="hero-badge">
+  <header class="hero" id="engine-hero">
+    <div class="hero-badge" id="engine-hero-badge">
       <span class="dot"></span> DAA Project · Greedy Algorithm
     </div>
-    <h1 id="hero-title">Huffman Coding<br>Compression System</h1>
-    <p id="hero-desc">Interactive demonstration of a <strong>Greedy Algorithm</strong> that builds optimal, prefix-free, variable-length codes — proved to achieve minimum expected encoding length.</p>
-    <div class="hero-tags" id="hero-tags">
+    <h1 id="engine-hero-title">Huffman Coding<br>Compression System</h1>
+    <p id="engine-hero-desc">Interactive demonstration of a <strong>Greedy Algorithm</strong> that builds optimal, prefix-free, variable-length codes — proved to achieve minimum expected encoding length.</p>
+    <div class="hero-tags" id="engine-hero-tags">
       <span class="tag tag-cyan">⏱ O(n log n) Time</span>
       <span class="tag tag-amber">💾 O(n) Space</span>
       <span class="tag tag-purple">🌲 Min-Heap</span>
@@ -32,13 +68,10 @@
   ══════════════════════════════════════════════ -->
   <nav class="nav-tabs" role="tablist" aria-label="Sections">
     <button class="nav-tab active" data-tab="encoder"    role="tab" id="tab-encoder">
-      <span class="tab-icon">🔒</span> <span>Encoder</span>
+      <span class="tab-icon">💻</span> <span>Workspace</span>
     </button>
     <button class="nav-tab" data-tab="tree"       role="tab" id="tab-tree">
       <span class="tab-icon">🌲</span> <span>Tree Visualizer</span>
-    </button>
-    <button class="nav-tab" data-tab="comparison" role="tab" id="tab-comparison">
-      <span class="tab-icon">📊</span> <span>Comparison</span>
     </button>
     <button class="nav-tab" data-tab="decoder"    role="tab" id="tab-decoder">
       <span class="tab-icon">🔓</span> <span>Decoder</span>
@@ -65,13 +98,7 @@
 
       <!-- Input -->
       <div class="card">
-        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
-          <span>Input Text</span>
-          <div class="algo-toggle" style="font-size: 0.9rem; font-weight: normal;">
-            <label style="cursor:pointer;"><input type="radio" name="algorithm" value="huffman" checked style="margin-right:4px;">Huffman</label>
-            <label style="cursor:pointer; margin-left:14px;"><input type="radio" name="algorithm" value="sf" style="margin-right:4px;">Shannon-Fano</label>
-          </div>
-        </div>
+        <div class="card-title">Input Text</div>
         <div class="input-group">
           <textarea id="input-text" rows="4" placeholder="Type or paste your text here… (Ctrl+Enter to encode)"
                     aria-label="Input text to encode"></textarea>
@@ -549,6 +576,139 @@ Encode text first to auto-load codebook here.
     </section>
 
   </main>
+  </div> <!-- /route-engine -->
+
+  <!-- ══════════════════════════════════════════════
+       ROUTE: THE ARENA
+  ══════════════════════════════════════════════ -->
+  <div id="route-arena" class="route-view" style="display:none;">
+    <header class="hero">
+      <div class="hero-badge"><span class="dot"></span> Head-to-Head</div>
+      <h1>The Arena</h1>
+      <p>Direct side-by-side comparison of Huffman (Greedy) vs. Shannon-Fano (Divide & Conquer).</p>
+    </header>
+    <main>
+      
+      <!-- Input Section -->
+      <div class="card" style="max-width: 800px; margin: 0 auto 32px auto;">
+        <div class="card-title">Test Subject</div>
+        <div class="input-group">
+          <textarea id="arena-input-text" rows="3" placeholder="Enter text to compress and compare in The Arena..."></textarea>
+        </div>
+        <div class="btn-group" style="justify-content: center; margin-top: 16px;">
+          <button class="btn btn-primary" id="btn-arena-compare" style="background: linear-gradient(135deg, var(--cyan), var(--purple));">⚔️ Encode & Compare</button>
+          <button class="btn btn-secondary" id="btn-arena-sample">🎲 Load Sample</button>
+          <button class="btn btn-amber" id="btn-arena-edgecase">🚨 Load Edge Case (Huffman Wins)</button>
+        </div>
+      </div>
+
+      <!-- Winner Badge -->
+      <div id="arena-winner-container" style="text-align: center; margin-bottom: 32px; display: none;">
+        <div class="winner-badge" id="arena-winner-badge">
+          <div class="winner-title">👑 WINNER</div>
+          <div class="winner-name" id="arena-winner-name">Huffman Coding</div>
+          <div class="winner-reason" id="arena-winner-reason">Saved 12 more bits</div>
+        </div>
+      </div>
+
+      <!-- Split Screen Grid -->
+      <div class="arena-grid" id="arena-results" style="display:none;">
+        
+        <!-- Huffman Column -->
+        <div class="arena-column huffman-column">
+          <div class="arena-column-header">
+            <h2 style="color: var(--cyan);">Huffman Coding</h2>
+            <span class="tag tag-cyan">Greedy</span>
+          </div>
+          
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value sv-cyan" id="arena-huff-bits">—</div>
+              <div class="stat-label">Total Bits</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value sv-cyan" id="arena-huff-time">—</div>
+              <div class="stat-label">Execution Time</div>
+            </div>
+            <div class="stat-card" style="grid-column: span 2;">
+              <div class="stat-value sv-green" id="arena-huff-savings">—</div>
+              <div class="stat-label">Space Saved</div>
+            </div>
+          </div>
+          
+          <div class="card" style="margin-top: 16px;">
+            <div class="card-title">Code Map Snippet</div>
+            <div class="code-table-wrap">
+              <table style="font-size: 0.8rem;">
+                <thead>
+                  <tr><th>Char</th><th>Code</th><th>Len</th></tr>
+                </thead>
+                <tbody id="arena-huff-codes"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shannon-Fano Column -->
+        <div class="arena-column sf-column">
+          <div class="arena-column-header">
+            <h2 style="color: var(--purple);">Shannon-Fano</h2>
+            <span class="tag tag-purple">Divide & Conquer</span>
+          </div>
+          
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value sv-purple" id="arena-sf-bits">—</div>
+              <div class="stat-label">Total Bits</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value sv-purple" id="arena-sf-time">—</div>
+              <div class="stat-label">Execution Time</div>
+            </div>
+            <div class="stat-card" style="grid-column: span 2;">
+              <div class="stat-value sv-amber" id="arena-sf-savings">—</div>
+              <div class="stat-label">Space Saved</div>
+            </div>
+          </div>
+          
+          <div class="card" style="margin-top: 16px;">
+            <div class="card-title">Code Map Snippet</div>
+            <div class="code-table-wrap">
+              <table style="font-size: 0.8rem;">
+                <thead>
+                  <tr><th>Char</th><th>Code</th><th>Len</th></tr>
+                </thead>
+                <tbody id="arena-sf-codes"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Theoretical Limits -->
+      <div id="arena-entropy-section" style="display:none; max-width: 800px; margin: 32px auto 0;">
+        <div class="card entropy-card">
+          <div class="card-title" style="display: flex; justify-content: space-between;">
+            <span>Theoretical Limit (Shannon Entropy)</span>
+            <span style="color: var(--cyan); font-family: var(--font-mono);">H(X)</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div>
+              <div style="font-size: 2.2rem; font-weight: 800; line-height: 1;" id="arena-entropy-val">—</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">bits per symbol (minimum expected)</div>
+            </div>
+            <div style="text-align: right; max-width: 400px;">
+              <p style="font-size: 0.85rem; color: var(--text-muted);">
+                Shannon Entropy calculates the absolute theoretical minimum average bits required per character for lossless compression of this specific text.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
 
   <!-- ══════════════════════════════════════════════
        FOOTER

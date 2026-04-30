@@ -8,7 +8,43 @@
 // ─── Globals ─────────────────────────────────────────────────
 let lastResults = { huffman: null, sf: null };
 let currentAlgorithm = 'huffman';
+let currentRoute = 'home';
 let stepperActive = false;
+
+// ─── Routing & Navigation ────────────────────────────────────
+function initRouting() {
+  document.querySelectorAll('.gn-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.appRoute(btn.dataset.route);
+    });
+  });
+}
+
+window.appRoute = function(route) {
+  currentRoute = route;
+  
+  // Update nav buttons
+  document.querySelectorAll('.gn-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.querySelector(`.gn-btn[data-route="${route}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  // Hide all routes
+  document.querySelectorAll('.route-view').forEach(r => r.style.display = 'none');
+
+  if (route === 'home') {
+    document.getElementById('route-home').style.display = 'block';
+  } else if (route === 'arena') {
+    document.getElementById('route-arena').style.display = 'block';
+  } else {
+    // Engine views
+    document.getElementById('route-engine').style.display = 'block';
+    currentAlgorithm = route;
+    renderActiveAlgorithm();
+    
+    // Auto-select Encoder tab when entering an engine
+    document.getElementById('tab-encoder').click();
+  }
+}
 
 // ─── Tab Navigation ────────────────────────────────────────
 function initTabs() {
@@ -19,14 +55,6 @@ function initTabs() {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('panel-' + target).classList.add('active');
-    });
-  });
-
-  // Algorithm Toggle
-  document.querySelectorAll('input[name="algorithm"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      currentAlgorithm = e.target.value;
-      renderActiveAlgorithm();
     });
   });
 }
@@ -72,27 +100,17 @@ function encodeText() {
 }
 
 function renderActiveAlgorithm() {
-  const res = lastResults[currentAlgorithm];
-  if (!res) return;
-
-  renderFrequencyTable(res.freqMap);
-  renderStats(res.stats);
-  renderCodeTable(res.codes, res.freqMap, res.originalText);
-  renderBitStream(res.encoded);
-  renderTreeFull(res);
-  updateDecoderCodebook(res);
-  applyTabIsolation();
-  startFactCarousels();
-
   const isSF = currentAlgorithm === 'sf';
+  
+  // 1. Update UI globally based on current route, EVEN IF NO TEXT ENCODED YET
   document.querySelector('#panel-encoder h2').innerHTML = isSF ? '🔒 Shannon-Fano Encoder' : '🔒 Huffman Encoder';
   document.querySelector('#panel-tree h2').innerHTML = isSF ? '🌲 Shannon-Fano Tree Visualizer (Top-Down)' : '🌲 Huffman Tree Visualizer (Bottom-Up)';
   document.querySelector('#panel-decoder h2').innerHTML = isSF ? '🔓 Shannon-Fano Decoder' : '🔓 Huffman Decoder';
 
-  const heroBadge = document.getElementById('hero-badge');
-  const heroTitle = document.getElementById('hero-title');
-  const heroDesc  = document.getElementById('hero-desc');
-  const heroTags  = document.getElementById('hero-tags');
+  const heroBadge = document.getElementById('engine-hero-badge');
+  const heroTitle = document.getElementById('engine-hero-title');
+  const heroDesc  = document.getElementById('engine-hero-desc');
+  const heroTags  = document.getElementById('engine-hero-tags');
 
   if (isSF) {
       if (heroBadge) heroBadge.innerHTML = '<span class="dot"></span> DAA Project · Divide & Conquer';
@@ -115,6 +133,21 @@ function renderActiveAlgorithm() {
         <span class="tag tag-green">✓ Optimal Encoding</span>
       `;
   }
+
+  applyTabIsolation();
+  startFactCarousels();
+
+  // 2. If no text has been encoded yet for this engine, stop here
+  const res = lastResults[currentAlgorithm];
+  if (!res) return;
+
+  // 3. Render specific engine results
+  renderFrequencyTable(res.freqMap);
+  renderStats(res.stats);
+  renderCodeTable(res.codes, res.freqMap, res.originalText);
+  renderBitStream(res.encoded);
+  renderTreeFull(res);
+  updateDecoderCodebook(res);
 }
 
 function renderFrequencyTable(freqMap) {
@@ -543,13 +576,13 @@ const SAMPLES = [
   'hello world',
   'abracadabra',
   'the quick brown fox jumps over the lazy dog',
-  'aaabbbcccdddeee',
   'mississippi',
   'supercalifragilisticexpialidocious',
-  'A_C_G_T_A_T_C_G_A_T_C_G_A_C_G_T_A_T_C_G',
   'to be or not to be, that is the question',
-  'lorem ipsum dolor sit amet consectetur adipiscing elit',
-  'she sells sea shells by the sea shore'
+  // Heavily skewed distribution that mathematically breaks Shannon-Fano's heuristic
+  'A'.repeat(35) + 'B'.repeat(17) + 'C'.repeat(17) + 'D'.repeat(16) + 'E'.repeat(15),
+  // Another mathematical edge case where greedy optimal beats top-down split
+  'X'.repeat(15) + 'Y'.repeat(7) + 'Z'.repeat(6) + 'W'.repeat(6) + 'V'.repeat(5)
 ];
 
 function loadSample() {
@@ -558,12 +591,109 @@ function loadSample() {
   showToast(`Loaded: "${txt}"`);
 }
 
+// ─── The Arena (Phase 3) ──────────────────────────────────────
+function calculateEntropy(freqMap, totalChars) {
+  let entropy = 0;
+  for (const freq of Object.values(freqMap)) {
+    const p = freq / totalChars;
+    if (p > 0) {
+      entropy -= p * Math.log2(p);
+    }
+  }
+  return entropy;
+}
+
+function compareInArena() {
+  const text = document.getElementById('arena-input-text').value.trim();
+  if (!text) { showToast('⚠ Enter some text to compare!'); return; }
+  if (text.length > 5000) { showToast('⚠ Text too long (max 5000 chars)'); return; }
+
+  // 1. Execute & Time Huffman
+  const t0Huff = performance.now();
+  const hRes = Huffman.encode(text);
+  const t1Huff = performance.now();
+  const timeHuff = t1Huff - t0Huff;
+
+  // 2. Execute & Time Shannon-Fano
+  const t0SF = performance.now();
+  const sfRes = ShannonFano.encode(text);
+  const t1SF = performance.now();
+  const timeSF = t1SF - t0SF;
+
+  // Show Results Section
+  document.getElementById('arena-results').style.display = 'grid';
+  document.getElementById('arena-winner-container').style.display = 'block';
+  document.getElementById('arena-entropy-section').style.display = 'block';
+
+  // 3. Populate Stats
+  // Huffman
+  setValue('arena-huff-bits', fmtNum(hRes.stats.compressedBits));
+  setValue('arena-huff-time', timeHuff.toFixed(2) + ' ms');
+  setValue('arena-huff-savings', hRes.stats.savings + '%');
+
+  // Shannon-Fano
+  setValue('arena-sf-bits', fmtNum(sfRes.stats.compressedBits));
+  setValue('arena-sf-time', timeSF.toFixed(2) + ' ms');
+  setValue('arena-sf-savings', sfRes.stats.savings + '%');
+
+  // 4. Code Map Snippets (First 8 chars sorted by freq)
+  const renderArenaTable = (tbodyId, codes, freqMap) => {
+    const tbody = document.getElementById(tbodyId);
+    tbody.innerHTML = '';
+    const sortedChars = Object.keys(freqMap).sort((a, b) => freqMap[b] - freqMap[a]).slice(0, 8);
+    sortedChars.forEach(ch => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family:var(--font-mono)">${ch === ' ' ? 'SPACE' : escHtml(ch)}</td>
+        <td style="font-family:var(--font-mono); font-size: 0.75rem;">${codes[ch]}</td>
+        <td>${codes[ch].length}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  };
+  renderArenaTable('arena-huff-codes', hRes.codes, hRes.freqMap);
+  renderArenaTable('arena-sf-codes', sfRes.codes, sfRes.freqMap);
+
+  // 5. Determine Winner
+  const wName = document.getElementById('arena-winner-name');
+  const wReason = document.getElementById('arena-winner-reason');
+  const wBadge = document.getElementById('arena-winner-badge');
+  
+  const diff = sfRes.stats.compressedBits - hRes.stats.compressedBits;
+  if (diff > 0) {
+    wName.textContent = 'Huffman Coding';
+    wName.style.color = 'var(--cyan)';
+    wReason.textContent = `Generated ${fmtNum(diff)} fewer bits than Shannon-Fano`;
+    wBadge.style.borderColor = 'rgba(0, 212, 255, 0.4)';
+  } else if (diff < 0) {
+    wName.textContent = 'Shannon-Fano';
+    wName.style.color = 'var(--purple)';
+    wReason.textContent = `Generated ${fmtNum(Math.abs(diff))} fewer bits than Huffman`;
+    wBadge.style.borderColor = 'rgba(179, 136, 255, 0.4)';
+  } else {
+    wName.textContent = 'TIE (Equal Bits)';
+    wName.style.color = 'var(--text-primary)';
+    wReason.textContent = `Both generated ${fmtNum(hRes.stats.compressedBits)} bits`;
+    wBadge.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+  }
+
+  // 6. Entropy Calculation
+  const entropy = calculateEntropy(hRes.freqMap, text.length);
+  setValue('arena-entropy-val', entropy.toFixed(3));
+
+  showToast('✓ Comparison complete!');
+}
+
 // ─── Init ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initRouting();
   initTabs();
   initTreeTab();
   applyTabIsolation();
   startFactCarousels();
+
+  // Load home route initially
+  window.appRoute('home');
 
   // Initially hide comparison table element headers till data loads
   const cmpTableEl = document.getElementById('cmp-table');
@@ -572,6 +702,21 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-encode').addEventListener('click', encodeText);
   document.getElementById('btn-sample').addEventListener('click', loadSample);
   document.getElementById('btn-decode').addEventListener('click', decodeText);
+
+  // Arena event listeners
+  document.getElementById('btn-arena-compare').addEventListener('click', compareInArena);
+  document.getElementById('btn-arena-sample').addEventListener('click', () => {
+    const txt = SAMPLES[Math.floor(Math.random() * SAMPLES.length)];
+    document.getElementById('arena-input-text').value = txt;
+    showToast(`Loaded Sample: "${txt.substring(0, 20)}..."`);
+  });
+  document.getElementById('btn-arena-edgecase').addEventListener('click', () => {
+    const edgeCase = 'A'.repeat(35) + 'B'.repeat(17) + 'C'.repeat(17) + 'D'.repeat(16) + 'E'.repeat(15);
+    document.getElementById('arena-input-text').value = edgeCase;
+    showToast('Loaded Edge Case! Huffman is guaranteed to win.');
+    // Automatically trigger comparison so it's a 1-click demo
+    compareInArena();
+  });
 
   document.getElementById('btn-export-codes').addEventListener('click', exportCodebook);
   document.getElementById('btn-export-bits').addEventListener('click', exportBits);
@@ -587,9 +732,12 @@ document.addEventListener('DOMContentLoaded', () => {
     else showToast('Nothing to copy yet!');
   });
 
-  // Ctrl+Enter shortcut
+  // Ctrl+Enter shortcut for encoder and arena
   document.getElementById('input-text').addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 'Enter') encodeText();
+  });
+  document.getElementById('arena-input-text').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') compareInArena();
   });
 
   // Hide results initially
