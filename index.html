@@ -29,13 +29,13 @@
        ROUTE: HOME
   ══════════════════════════════════════════════ -->
   <div id="route-home" class="route-view active">
-    <header class="hero" style="min-height: 85vh; display: flex; flex-direction: column; justify-content: center;">
+    <header class="hero" style="min-height: 85vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
       <div class="hero-badge"><span class="dot"></span> Information Theory</div>
-      <h1>Explore the Limits of<br>Data Compression</h1>
+      <h1 class="text-gradient-animated">Explore the Limits of<br>Data Compression</h1>
       <p>An interactive visualization of Greedy vs. Divide & Conquer algorithms.</p>
       <div class="btn-group" style="justify-content: center; margin-top: 24px;">
         <button class="btn btn-primary" onclick="appRoute('huffman')">Start Huffman</button>
-        <button class="btn btn-amber" onclick="appRoute('sf')">Start Shannon-Fano</button>
+        <button class="btn btn-purple" onclick="appRoute('sf')">Start Shannon-Fano</button>
         <button class="btn btn-secondary" onclick="appRoute('arena')">Enter The Arena</button>
       </div>
     </header>
@@ -700,7 +700,7 @@ Encode text first to auto-load codebook here.
             </div>
             <div style="text-align: right; max-width: 400px;">
               <p style="font-size: 0.85rem; color: var(--text-muted);">
-                Shannon Entropy calculates the absolute theoretical minimum average bits required per character for lossless compression of this specific text.
+                This is a fundamental law of physics for data. It is physically impossible for ANY algorithm to compress this text into fewer bits than <strong>H(X)</strong>. We use it as the ultimate benchmark to measure how close Huffman and Shannon-Fano get to perfection.
               </p>
             </div>
           </div>

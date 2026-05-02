@@ -73,7 +73,7 @@ body::before {
   z-index: 1;
   text-align: center;
   padding: 120px 24px 60px; /* Increased top padding for global nav */
-  background: radial-gradient(ellipse 800px 400px at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse 800px 500px at 50% 0%, rgba(0,212,255,0.1) 0%, rgba(179,136,255,0.05) 40%, transparent 70%);
 }
 
 .hero-badge {
@@ -113,6 +113,20 @@ body::before {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 16px;
+}
+
+.text-gradient-animated {
+  background: linear-gradient(to right, var(--cyan), var(--purple), var(--cyan));
+  background-size: 200% auto;
+  color: #fff;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientText 4s linear infinite;
+}
+
+@keyframes gradientText {
+  to { background-position: 200% center; }
 }
 
 .hero p {
@@ -382,6 +396,11 @@ textarea::placeholder, input::placeholder { color: var(--text-muted); }
 
 .btn-amber {
   background: linear-gradient(135deg, #e65100, var(--amber));
+  color: var(--bg-base);
+}
+
+.btn-purple {
+  background: linear-gradient(135deg, #7c4dff, var(--purple));
   color: var(--bg-base);
 }
 
