@@ -76,6 +76,10 @@ body::before {
   background: radial-gradient(ellipse 800px 500px at 50% 0%, rgba(0,212,255,0.1) 0%, rgba(179,136,255,0.05) 40%, transparent 70%);
 }
 
+#route-arena .hero {
+  padding-bottom: 24px;
+}
+
 .hero-badge {
   display: inline-flex;
   align-items: center;
@@ -837,7 +841,7 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
 
 /* ─── Footer ───────────────────────────────────────────────── */
 .site-footer {
-  margin-top: 60px;
+  margin-top: 24px;
   padding: 32px 40px;
   background: rgba(10, 11, 20, 0.4);
   border-top: 1px solid var(--border);
@@ -971,5 +975,166 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
   background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,212,255,0.05));
   border: 1px solid var(--cyan-dim);
   box-shadow: 0 8px 32px rgba(0,212,255,0.1);
+}
+
+/* ─── Arena Graphs Section ──────────────────────────────────── */
+.arena-graph-card {
+  margin-bottom: 24px;
+  animation: fadeIn 0.4s ease both;
+}
+
+/* Graph Legend */
+.graph-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.legend-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Donut Charts ───────────────────────────────────────────── */
+.donut-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 160px;
+  max-width: 240px;
+}
+
+.donut-svg-wrap {
+  position: relative;
+  width: 170px;
+  height: 170px;
+}
+
+.donut-svg-wrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.donut-center-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donut-center-pct {
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.donut-center-sub {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 3px;
+}
+
+.donut-label-wrap {
+  text-align: center;
+}
+
+.donut-algo-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.donut-bits {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.donut-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 3px;
+}
+
+.donut-divider {
+  width: 1px;
+  height: 130px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .donut-divider { display: none; }
+  .donut-svg-wrap { width: 140px; height: 140px; }
+}
+
+/* ── ms Vertical Bar Chart ─────────────────────────────────── */
+.svg-chart-wrap {
+  width: 100%;
+  margin-top: 8px;
+}
+
+#svg-ms-chart {
+  width: 100%;
+  height: 240px;
+  display: block;
+  overflow: visible;
+}
+
+/* ── Radar Chart ────────────────────────────────────────────── */
+.radar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+#svg-radar {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  display: block;
+}
+
+.radar-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 

@@ -681,7 +681,327 @@ function compareInArena() {
   const entropy = calculateEntropy(hRes.freqMap, text.length);
   setValue('arena-entropy-val', entropy.toFixed(3));
 
+  // 7. Show & render all three graphs
+  document.getElementById('arena-graphs-section').style.display = 'block';
+  renderDonutCharts(hRes, sfRes);
+  renderMsChart(timeHuff, timeSF);
+  renderRadar(hRes, sfRes, timeHuff, timeSF);
+
   showToast('✓ Comparison complete!');
+}
+
+// ─── Graph 1: Donut Charts — Space Savings ────────────────────
+function renderDonutCharts(hRes, sfRes) {
+  drawDonut('svg-donut-huff', hRes.stats.savings,  '#00d4ff', 'donut-huff-pct', hRes.stats.compressedBits,  'donut-huff-bits');
+  drawDonut('svg-donut-sf',   sfRes.stats.savings, '#b388ff', 'donut-sf-pct',  sfRes.stats.compressedBits, 'donut-sf-bits');
+}
+
+function drawDonut(svgId, savings, color, pctId, bits, bitsId) {
+  const svg = document.getElementById(svgId);
+  svg.innerHTML = '';
+  const NS = 'http://www.w3.org/2000/svg';
+
+  const cx = 100, cy = 100;
+  const rOuter = 78, sw = 18;
+  const r = rOuter - sw / 2;  // centre of stroke
+  const pct = Math.max(0, Math.min(savings, 100));
+  const C = 2 * Math.PI * r;
+  const saved = C * (pct / 100);
+  const remaining = C - saved;
+
+  // ── Background ring (original size)
+  const bgCircle = document.createElementNS(NS, 'circle');
+  bgCircle.setAttribute('cx', cx); bgCircle.setAttribute('cy', cy); bgCircle.setAttribute('r', r);
+  bgCircle.setAttribute('fill', 'none');
+  bgCircle.setAttribute('stroke', 'rgba(255,255,255,0.1)');
+  bgCircle.setAttribute('stroke-width', sw);
+  svg.appendChild(bgCircle);
+
+  // ── Foreground arc (savings %) — rotated so start is at top
+  const arc = document.createElementNS(NS, 'circle');
+  arc.setAttribute('cx', cx); arc.setAttribute('cy', cy); arc.setAttribute('r', r);
+  arc.setAttribute('fill', 'none');
+  arc.setAttribute('stroke', color);
+  arc.setAttribute('stroke-width', sw);
+  arc.setAttribute('stroke-linecap', 'round');
+  arc.setAttribute('stroke-dasharray', `0 ${C}`);
+  arc.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
+  arc.style.transition = 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)';
+  svg.appendChild(arc);
+
+  // Animate arc in
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      arc.setAttribute('stroke-dasharray', `${saved} ${remaining}`);
+    });
+  });
+
+  // ── Update external labels
+  const pctEl = document.getElementById(pctId);
+  if (pctEl) pctEl.textContent = pct + '%';
+  const bitsEl = document.getElementById(bitsId);
+  if (bitsEl) bitsEl.textContent = fmtNum(bits);
+}
+
+// ─── Graph 2: Vertical ms Bar Chart (SVG) ────────────────────
+function renderMsChart(timeHuff, timeSF) {
+  const svg = document.getElementById('svg-ms-chart');
+  svg.innerHTML = '';
+
+  const W = svg.clientWidth || 500;
+  const H = 220;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const PAD = { top: 24, right: 24, bottom: 48, left: 56 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const maxVal = Math.max(timeHuff, timeSF, 0.001) * 1.35;
+
+  // Helper: y position for a ms value
+  const yFor = v => PAD.top + chartH - (v / maxVal) * chartH;
+
+  // ── Y-axis gridlines & labels
+  const ticks = 4;
+  for (let i = 0; i <= ticks; i++) {
+    const v = (maxVal / ticks) * i;
+    const y = yFor(v);
+    // Gridline
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', PAD.left); line.setAttribute('x2', PAD.left + chartW);
+    line.setAttribute('y1', y);         line.setAttribute('y2', y);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.06)');
+    line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+    // Label
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', PAD.left - 8);
+    txt.setAttribute('y', y + 4);
+    txt.setAttribute('text-anchor', 'end');
+    txt.setAttribute('font-size', '11');
+    txt.setAttribute('fill', 'rgba(255,255,255,0.35)');
+    txt.setAttribute('font-family', 'JetBrains Mono, monospace');
+    txt.textContent = v.toFixed(v < 1 ? 3 : 2);
+    svg.appendChild(txt);
+  }
+
+  // ── X-axis baseline
+  const base = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  base.setAttribute('x1', PAD.left); base.setAttribute('x2', PAD.left + chartW);
+  base.setAttribute('y1', PAD.top + chartH); base.setAttribute('y2', PAD.top + chartH);
+  base.setAttribute('stroke', 'rgba(255,255,255,0.15)');
+  base.setAttribute('stroke-width', '1.5');
+  svg.appendChild(base);
+
+  // ── ms unit label
+  const msLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  msLabel.setAttribute('x', PAD.left - 36);
+  msLabel.setAttribute('y', PAD.top + chartH / 2);
+  msLabel.setAttribute('text-anchor', 'middle');
+  msLabel.setAttribute('font-size', '10');
+  msLabel.setAttribute('fill', 'rgba(255,255,255,0.25)');
+  msLabel.setAttribute('transform', `rotate(-90, ${PAD.left - 36}, ${PAD.top + chartH / 2})`);
+  msLabel.textContent = 'milliseconds';
+  svg.appendChild(msLabel);
+
+  // ── Bars
+  const bars = [
+    { val: timeHuff, label: 'Huffman', color: '#00d4ff', x: PAD.left + chartW * 0.18 },
+    { val: timeSF,   label: 'SF',      color: '#b388ff', x: PAD.left + chartW * 0.55 }
+  ];
+  const barW = Math.min(chartW * 0.22, 90);
+
+  bars.forEach(bar => {
+    const fullH = (bar.val / maxVal) * chartH;
+    const barY = PAD.top + chartH - fullH;
+
+    // Bar rect (starts at base, animates up)
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', bar.x - barW / 2);
+    rect.setAttribute('y', PAD.top + chartH);   // start at baseline
+    rect.setAttribute('width', barW);
+    rect.setAttribute('height', 0);             // start height=0
+    rect.setAttribute('rx', '6');
+    rect.setAttribute('fill', bar.color);
+    rect.setAttribute('fill-opacity', '0.85');
+    svg.appendChild(rect);
+
+    // Animate bar upward
+    setTimeout(() => {
+      rect.style.transition = 'y 0.75s cubic-bezier(0.4,0,0.2,1), height 0.75s cubic-bezier(0.4,0,0.2,1)';
+      rect.setAttribute('y', barY);
+      rect.setAttribute('height', fullH);
+    }, 80);
+
+    // Value label above bar
+    const valTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    valTxt.setAttribute('x', bar.x);
+    valTxt.setAttribute('y', barY - 8);
+    valTxt.setAttribute('text-anchor', 'middle');
+    valTxt.setAttribute('font-size', '11');
+    valTxt.setAttribute('font-weight', '700');
+    valTxt.setAttribute('fill', bar.color);
+    valTxt.setAttribute('font-family', 'JetBrains Mono, monospace');
+    valTxt.textContent = bar.val.toFixed(3) + ' ms';
+    setTimeout(() => svg.appendChild(valTxt), 200);
+
+    // X-axis label
+    const xTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    xTxt.setAttribute('x', bar.x);
+    xTxt.setAttribute('y', PAD.top + chartH + 22);
+    xTxt.setAttribute('text-anchor', 'middle');
+    xTxt.setAttribute('font-size', '12');
+    xTxt.setAttribute('font-weight', '600');
+    xTxt.setAttribute('fill', bar.color);
+    xTxt.textContent = bar.label;
+    svg.appendChild(xTxt);
+  });
+
+  // ── Winner dotted line
+  const winVal = Math.min(timeHuff, timeSF);
+  const winY = yFor(winVal);
+  const winLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  winLine.setAttribute('x1', PAD.left); winLine.setAttribute('x2', PAD.left + chartW);
+  winLine.setAttribute('y1', winY); winLine.setAttribute('y2', winY);
+  winLine.setAttribute('stroke', '#00e676');
+  winLine.setAttribute('stroke-width', '1.5');
+  winLine.setAttribute('stroke-dasharray', '6 4');
+  winLine.setAttribute('opacity', '0.6');
+  svg.appendChild(winLine);
+
+  // ── Trophy above winning bar
+  const huffWins = timeHuff <= timeSF;
+  const winBar = huffWins ? bars[0] : bars[1];
+  const winBarFullH = (winBar.val / maxVal) * chartH;
+  const winBarY = PAD.top + chartH - winBarFullH;
+  setTimeout(() => {
+    const trophy = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    trophy.setAttribute('x', winBar.x);
+    trophy.setAttribute('y', winBarY - 26);
+    trophy.setAttribute('text-anchor', 'middle');
+    trophy.setAttribute('font-size', '20');
+    trophy.setAttribute('dominant-baseline', 'middle');
+    trophy.textContent = '🏆';
+    svg.appendChild(trophy);
+  }, 350);
+}
+
+// ─── Graph 3: Radar / Spider Chart (SVG) ─────────────────────
+function renderRadar(hRes, sfRes, timeHuff, timeSF) {
+  const svg = document.getElementById('svg-radar');
+  svg.innerHTML = '';
+
+  const cx = 200, cy = 195, R = 140;
+  const AXES = [
+    'Speed',
+    'Compression',
+    'Code\nEfficiency',
+    'Entropy\nCloseness',
+    'Optimality'
+  ];
+  const N = AXES.length;
+
+  // Normalize metrics 0–1
+  const maxTime = Math.max(timeHuff, timeSF, 0.001);
+  const hSavings = Math.max(hRes.stats.savings, 0) / 100;
+  const sfSavings = Math.max(sfRes.stats.savings, 0) / 100;
+  const hAvg = hRes.stats.avgCodeLen;
+  const sfAvg = sfRes.stats.avgCodeLen;
+  const maxAvg = Math.max(hAvg, sfAvg, 1);
+  const text = hRes.originalText;
+  const entropy = calculateEntropy(hRes.freqMap, text.length);
+
+  const hScores = [
+    1 - timeHuff / maxTime,               // Speed
+    hSavings,                              // Compression
+    1 - (hAvg / 8),                        // Code Efficiency (vs 8-bit fixed)
+    Math.min(entropy / hAvg, 1),           // Entropy Closeness
+    0.95                                   // Optimality (proven optimal)
+  ];
+  const sfScores = [
+    1 - timeSF / maxTime,
+    sfSavings,
+    1 - (sfAvg / 8),
+    Math.min(entropy / sfAvg, 1),
+    0.65                                   // Optimality (heuristic, not proven)
+  ];
+
+  // Angle for each axis (start top, go clockwise)
+  const angle = i => (Math.PI * 2 * i / N) - Math.PI / 2;
+
+  // Point at radius r on axis i
+  const pt = (i, r) => ({
+    x: cx + Math.cos(angle(i)) * r,
+    y: cy + Math.sin(angle(i)) * r
+  });
+
+  // ── Background rings
+  [0.25, 0.5, 0.75, 1.0].forEach(frac => {
+    const pts = Array.from({ length: N }, (_, i) => pt(i, R * frac));
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
+    poly.setAttribute('fill', 'none');
+    poly.setAttribute('stroke', 'rgba(255,255,255,0.07)');
+    poly.setAttribute('stroke-width', '1');
+    svg.appendChild(poly);
+  });
+
+  // ── Axis lines
+  for (let i = 0; i < N; i++) {
+    const end = pt(i, R);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+    line.setAttribute('x2', end.x); line.setAttribute('y2', end.y);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.1)');
+    line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+  }
+
+  // ── Draw polygon for each algo
+  const drawPolygon = (scores, color, opacity) => {
+    const pts = scores.map((s, i) => pt(i, R * Math.max(s, 0.04)));
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
+    poly.setAttribute('fill', color);
+    poly.setAttribute('fill-opacity', opacity);
+    poly.setAttribute('stroke', color);
+    poly.setAttribute('stroke-width', '2');
+    poly.setAttribute('stroke-opacity', '0.9');
+    poly.style.transition = 'all 0.6s ease';
+    svg.appendChild(poly);
+
+    // Dots on vertices
+    pts.forEach(p => {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y);
+      circle.setAttribute('r', '4');
+      circle.setAttribute('fill', color);
+      circle.setAttribute('opacity', '0.9');
+      svg.appendChild(circle);
+    });
+  };
+
+  drawPolygon(sfScores, '#b388ff', 0.18);
+  drawPolygon(hScores,  '#00d4ff', 0.22);
+
+  // ── Axis Labels
+  for (let i = 0; i < N; i++) {
+    const labelR = R + 22;
+    const p = pt(i, labelR);
+    const lines = AXES[i].split('\n');
+    lines.forEach((line, li) => {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', p.x);
+      txt.setAttribute('y', p.y + li * 14);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('dominant-baseline', 'middle');
+      txt.setAttribute('font-size', '11');
+      txt.setAttribute('font-weight', '600');
+      txt.setAttribute('fill', 'rgba(255,255,255,0.7)');
+      txt.textContent = line;
+      svg.appendChild(txt);
+    });
+  }
 }
 
 // ─── Init ─────────────────────────────────────────────────────

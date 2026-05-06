@@ -14,7 +14,7 @@
        GLOBAL NAVIGATION
   ══════════════════════════════════════════════ -->
   <nav class="global-nav" aria-label="Global Options">
-    <div class="gn-brand">
+    <div class="gn-brand" onclick="appRoute('home')" style="cursor:pointer;" tabindex="0" role="button" aria-label="Go to Home">
       <span class="dot"></span> DAA Compression System
     </div>
     <div class="gn-routes">
@@ -680,6 +680,79 @@ Encode text first to auto-load codebook here.
                 </thead>
                 <tbody id="arena-sf-codes"></tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── ARENA GRAPHS ───────────────────────────────── -->
+      <div id="arena-graphs-section" style="display:none; margin-top: 32px;">
+
+        <!-- Graph 1: Donut Pie Charts — Space Savings -->
+        <div class="card arena-graph-card" id="card-donut-charts">
+          <div class="card-title">🥧 Space Savings — Compression Breakdown</div>
+          <div class="donut-row">
+
+            <!-- Huffman Donut -->
+            <div class="donut-wrap">
+              <div class="donut-svg-wrap">
+                <svg id="svg-donut-huff" viewBox="0 0 200 200" aria-label="Huffman compression donut chart"></svg>
+                <div class="donut-center-text">
+                  <span class="donut-center-pct" id="donut-huff-pct" style="color:var(--cyan)">—</span>
+                  <span class="donut-center-sub">saved</span>
+                </div>
+              </div>
+              <div class="donut-label-wrap">
+                <div class="donut-algo-name" style="color:var(--cyan)">Huffman</div>
+                <div class="donut-bits" id="donut-huff-bits">—</div>
+                <div class="donut-sub">compressed bits</div>
+              </div>
+            </div>
+
+            <div class="donut-divider"></div>
+
+            <!-- Shannon-Fano Donut -->
+            <div class="donut-wrap">
+              <div class="donut-svg-wrap">
+                <svg id="svg-donut-sf" viewBox="0 0 200 200" aria-label="Shannon-Fano compression donut chart"></svg>
+                <div class="donut-center-text">
+                  <span class="donut-center-pct" id="donut-sf-pct" style="color:var(--purple)">—</span>
+                  <span class="donut-center-sub">saved</span>
+                </div>
+              </div>
+              <div class="donut-label-wrap">
+                <div class="donut-algo-name" style="color:var(--purple)">Shannon-Fano</div>
+                <div class="donut-bits" id="donut-sf-bits">—</div>
+                <div class="donut-sub">compressed bits</div>
+              </div>
+            </div>
+
+          </div>
+          <div class="graph-legend" style="justify-content:center; margin-top:16px;">
+            <span class="legend-dot" style="background:rgba(255,255,255,0.18);"></span><span>Original size</span>
+            <span class="legend-dot" style="background:var(--cyan); margin-left:16px;"></span><span style="color:var(--cyan)">Huffman Saved</span>
+            <span class="legend-dot" style="background:var(--purple); margin-left:16px;"></span><span style="color:var(--purple)">Shannon-Fano Saved</span>
+          </div>
+        </div>
+
+
+        <!-- Graph 2: Vertical ms Bar Chart (SVG) -->
+        <div class="card arena-graph-card" id="card-ms-chart">
+          <div class="card-title">📊 Millisecond Time Comparison</div>
+          <div class="svg-chart-wrap">
+            <svg id="svg-ms-chart" aria-label="Millisecond timing chart"></svg>
+          </div>
+        </div>
+
+        <!-- Graph 3: Radar / Spider Chart (SVG) -->
+        <div class="card arena-graph-card" id="card-radar">
+          <div class="card-title">🕸 Performance Radar</div>
+          <div class="radar-wrap">
+            <svg id="svg-radar" viewBox="0 0 440 400" aria-label="Performance radar chart"></svg>
+            <div class="radar-legend">
+              <span class="legend-dot" style="background:var(--cyan);"></span><span style="color:var(--cyan)">Huffman</span>
+              <span class="legend-dot" style="background:var(--purple); margin-left:16px;"></span><span style="color:var(--purple)">Shannon-Fano</span>
             </div>
           </div>
         </div>
