@@ -77,9 +77,10 @@ function copyText(text, label = 'Copied!') {
 
 // ─── ENCODER TAB ─────────────────────────────────────────────
 function encodeText() {
-  const text = document.getElementById('input-text').value.trim();
-  if (!text) { showToast('⚠ Enter some text first!'); return; }
+  const text = document.getElementById('input-text').value;
+  if (text.length === 0) { showToast('⚠ Enter some text first!'); return; }
   if (text.length > 5000) { showToast('⚠ Text too long (max 5000 chars)'); return; }
+  if (!/^[\x00-\x7F]*$/.test(text)) { showToast('⚠ Only standard ASCII characters are supported!'); return; }
 
   // Compute for both algorithms
   lastResults.huffman = Huffman.encode(text);
@@ -604,9 +605,10 @@ function calculateEntropy(freqMap, totalChars) {
 }
 
 function compareInArena() {
-  const text = document.getElementById('arena-input-text').value.trim();
-  if (!text) { showToast('⚠ Enter some text to compare!'); return; }
+  const text = document.getElementById('arena-input-text').value;
+  if (text.length === 0) { showToast('⚠ Enter some text to compare!'); return; }
   if (text.length > 5000) { showToast('⚠ Text too long (max 5000 chars)'); return; }
+  if (!/^[\x00-\x7F]*$/.test(text)) { showToast('⚠ Only standard ASCII characters are supported!'); return; }
 
   // 1. Execute & Time Huffman
   const t0Huff = performance.now();
