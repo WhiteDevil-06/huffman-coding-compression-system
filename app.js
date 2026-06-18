@@ -686,6 +686,7 @@ function compareInArena() {
   renderDonutCharts(hRes, sfRes);
   renderMsChart(timeHuff, timeSF);
   renderRadar(hRes, sfRes, timeHuff, timeSF);
+  renderLengthSweep(text);
 
   showToast('✓ Comparison complete!');
 }
@@ -1002,6 +1003,213 @@ function renderRadar(hRes, sfRes, timeHuff, timeSF) {
       svg.appendChild(txt);
     });
   }
+}
+
+// ─── Graph 4: Text Length Sweep ─────────────────────────────
+function buildLengthCheckpoints(totalLength) {
+  if (totalLength <= 1) return [totalLength];
+
+  const maxPoints = totalLength <= 12 ? totalLength : 12;
+  const checkpoints = new Set([1, totalLength]);
+
+  for (let i = 1; i <= maxPoints; i++) {
+    const len = Math.max(1, Math.round((totalLength * i) / maxPoints));
+    checkpoints.add(len);
+  }
+
+  return Array.from(checkpoints).sort((a, b) => a - b);
+}
+
+function analyzeLengthSweep(text) {
+  return buildLengthCheckpoints(text.length).map(length => {
+    const sample = text.slice(0, length);
+    const hRes = Huffman.encode(sample);
+    const sfRes = ShannonFano.encode(sample);
+    const huffBits = hRes.stats.compressedBits;
+    const sfBits = sfRes.stats.compressedBits;
+    const diff = sfBits - huffBits;
+
+    return {
+      length,
+      huffBits,
+      sfBits,
+      diff,
+      leader: diff > 0 ? 'Huffman' : diff < 0 ? 'Shannon-Fano' : 'Tie'
+    };
+  });
+}
+
+function renderLengthSweep(text) {
+  const rows = analyzeLengthSweep(text);
+  renderLengthSweepSummary(rows);
+  renderLengthSweepTable(rows);
+  renderLengthSweepChart(rows);
+}
+
+function renderLengthSweepSummary(rows) {
+  const largest = rows.reduce((best, row) => {
+    return Math.abs(row.diff) > Math.abs(best.diff) ? row : best;
+  }, rows[0]);
+  const finalRow = rows[rows.length - 1];
+
+  const formatGap = row => {
+    if (!row || row.diff === 0) return '0 bits (tie)';
+    const leader = row.diff > 0 ? 'Huffman' : 'Shannon-Fano';
+    return `${fmtNum(Math.abs(row.diff))} bits (${leader})`;
+  };
+
+  setValue('sweep-largest-gap', formatGap(largest));
+  setValue('sweep-best-checkpoint', largest ? `${fmtNum(largest.length)} chars` : '—');
+  setValue('sweep-final-gap', formatGap(finalRow));
+}
+
+function renderLengthSweepTable(rows) {
+  const tbody = document.getElementById('sweep-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  rows.forEach(row => {
+    const tr = document.createElement('tr');
+    const diffClass = row.diff > 0 ? 'sweep-gap-huffman' : row.diff < 0 ? 'sweep-gap-sf' : 'sweep-gap-tie';
+    const diffText = row.diff === 0 ? '0' : `${row.diff > 0 ? '+' : '-'}${fmtNum(Math.abs(row.diff))}`;
+    tr.innerHTML = `
+      <td>${fmtNum(row.length)}</td>
+      <td style="color:var(--cyan);font-family:var(--font-mono)">${fmtNum(row.huffBits)}</td>
+      <td style="color:var(--purple);font-family:var(--font-mono)">${fmtNum(row.sfBits)}</td>
+      <td class="${diffClass}" style="font-family:var(--font-mono)">${diffText}</td>
+      <td>${row.leader}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderLengthSweepChart(rows) {
+  const svg = document.getElementById('svg-length-sweep');
+  if (!svg || !rows.length) return;
+  svg.innerHTML = '';
+
+  const W = svg.clientWidth || 760;
+  const H = 330;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const PAD = { top: 28, right: 28, bottom: 58, left: 64 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+  const minLen = rows[0].length;
+  const maxLen = rows[rows.length - 1].length;
+  const maxBits = Math.max(...rows.flatMap(row => [row.huffBits, row.sfBits]), 1);
+  const maxGap = Math.max(...rows.map(row => Math.abs(row.diff)), 1);
+
+  const xFor = length => {
+    if (maxLen === minLen) return PAD.left + chartW / 2;
+    return PAD.left + ((length - minLen) / (maxLen - minLen)) * chartW;
+  };
+  const yForBits = bits => PAD.top + chartH - (bits / maxBits) * chartH;
+  const yBase = PAD.top + chartH;
+
+  for (let i = 0; i <= 4; i++) {
+    const bits = (maxBits / 4) * i;
+    const y = yForBits(bits);
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', PAD.left);
+    line.setAttribute('x2', PAD.left + chartW);
+    line.setAttribute('y1', y);
+    line.setAttribute('y2', y);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.06)');
+    svg.appendChild(line);
+
+    const label = document.createElementNS(NS, 'text');
+    label.setAttribute('x', PAD.left - 10);
+    label.setAttribute('y', y + 4);
+    label.setAttribute('text-anchor', 'end');
+    label.setAttribute('font-size', '11');
+    label.setAttribute('fill', 'rgba(255,255,255,0.38)');
+    label.setAttribute('font-family', 'JetBrains Mono, monospace');
+    label.textContent = Math.round(bits);
+    svg.appendChild(label);
+  }
+
+  const axis = document.createElementNS(NS, 'line');
+  axis.setAttribute('x1', PAD.left);
+  axis.setAttribute('x2', PAD.left + chartW);
+  axis.setAttribute('y1', yBase);
+  axis.setAttribute('y2', yBase);
+  axis.setAttribute('stroke', 'rgba(255,255,255,0.16)');
+  axis.setAttribute('stroke-width', '1.5');
+  svg.appendChild(axis);
+
+  rows.forEach((row, idx) => {
+    const x = xFor(row.length);
+    const gapHeight = Math.max(2, (Math.abs(row.diff) / maxGap) * 54);
+    const barW = Math.max(5, Math.min(18, chartW / Math.max(rows.length * 2.4, 1)));
+    const bar = document.createElementNS(NS, 'rect');
+    bar.setAttribute('x', x - barW / 2);
+    bar.setAttribute('y', yBase - gapHeight);
+    bar.setAttribute('width', barW);
+    bar.setAttribute('height', gapHeight);
+    bar.setAttribute('rx', '3');
+    bar.setAttribute('fill', row.diff >= 0 ? '#00e676' : '#ff5252');
+    bar.setAttribute('opacity', row.diff === 0 ? '0.18' : '0.6');
+    svg.appendChild(bar);
+
+    if (idx === 0 || idx === rows.length - 1 || idx % 3 === 0) {
+      const label = document.createElementNS(NS, 'text');
+      label.setAttribute('x', x);
+      label.setAttribute('y', H - 24);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '10');
+      label.setAttribute('fill', 'rgba(255,255,255,0.42)');
+      label.setAttribute('font-family', 'JetBrains Mono, monospace');
+      label.textContent = row.length;
+      svg.appendChild(label);
+    }
+  });
+
+  const drawLine = (key, color) => {
+    const points = rows.map(row => `${xFor(row.length)},${yForBits(row[key])}`).join(' ');
+    const polyline = document.createElementNS(NS, 'polyline');
+    polyline.setAttribute('points', points);
+    polyline.setAttribute('fill', 'none');
+    polyline.setAttribute('stroke', color);
+    polyline.setAttribute('stroke-width', '2.5');
+    polyline.setAttribute('stroke-linejoin', 'round');
+    polyline.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(polyline);
+
+    rows.forEach(row => {
+      const dot = document.createElementNS(NS, 'circle');
+      dot.setAttribute('cx', xFor(row.length));
+      dot.setAttribute('cy', yForBits(row[key]));
+      dot.setAttribute('r', '3.5');
+      dot.setAttribute('fill', color);
+      dot.setAttribute('stroke', '#070b18');
+      dot.setAttribute('stroke-width', '1.5');
+      svg.appendChild(dot);
+    });
+  };
+
+  drawLine('huffBits', '#00d4ff');
+  drawLine('sfBits', '#b388ff');
+
+  const yLabel = document.createElementNS(NS, 'text');
+  yLabel.setAttribute('x', 18);
+  yLabel.setAttribute('y', PAD.top + chartH / 2);
+  yLabel.setAttribute('text-anchor', 'middle');
+  yLabel.setAttribute('font-size', '10');
+  yLabel.setAttribute('fill', 'rgba(255,255,255,0.32)');
+  yLabel.setAttribute('transform', `rotate(-90, 18, ${PAD.top + chartH / 2})`);
+  yLabel.textContent = 'compressed bits';
+  svg.appendChild(yLabel);
+
+  const xLabel = document.createElementNS(NS, 'text');
+  xLabel.setAttribute('x', PAD.left + chartW / 2);
+  xLabel.setAttribute('y', H - 4);
+  xLabel.setAttribute('text-anchor', 'middle');
+  xLabel.setAttribute('font-size', '11');
+  xLabel.setAttribute('fill', 'rgba(255,255,255,0.38)');
+  xLabel.textContent = 'text length checkpoints';
+  svg.appendChild(xLabel);
 }
 
 // ─── Init ─────────────────────────────────────────────────────

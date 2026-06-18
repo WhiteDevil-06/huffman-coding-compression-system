@@ -757,6 +757,48 @@ Encode text first to auto-load codebook here.
           </div>
         </div>
 
+        <!-- Graph 4: Text Length Sweep -->
+        <div class="card arena-graph-card" id="card-length-sweep">
+          <div class="card-title">📏 Text Length Sweep — Bit Difference Over Growth</div>
+          <div class="length-sweep-summary">
+            <div class="length-sweep-stat">
+              <span class="length-sweep-label">Largest Gap</span>
+              <strong id="sweep-largest-gap">—</strong>
+            </div>
+            <div class="length-sweep-stat">
+              <span class="length-sweep-label">Best Checkpoint</span>
+              <strong id="sweep-best-checkpoint">—</strong>
+            </div>
+            <div class="length-sweep-stat">
+              <span class="length-sweep-label">Final Difference</span>
+              <strong id="sweep-final-gap">—</strong>
+            </div>
+          </div>
+          <div class="svg-chart-wrap length-sweep-wrap">
+            <svg id="svg-length-sweep" aria-label="Compressed bits by text length chart"></svg>
+          </div>
+          <div class="graph-legend length-sweep-legend">
+            <span class="legend-dot" style="background:var(--cyan);"></span><span style="color:var(--cyan)">Huffman bits</span>
+            <span class="legend-dot" style="background:var(--purple); margin-left:16px;"></span><span style="color:var(--purple)">Shannon-Fano bits</span>
+            <span class="legend-dot" style="background:var(--green); margin-left:16px;"></span><span style="color:var(--green)">SF extra bits</span>
+            <span class="legend-dot" style="background:var(--red); margin-left:16px;"></span><span style="color:var(--red)">Huffman extra bits</span>
+          </div>
+          <div class="code-table-wrap length-sweep-table-wrap">
+            <table class="length-sweep-table" aria-label="Length sweep compressed bit comparison">
+              <thead>
+                <tr>
+                  <th>Length</th>
+                  <th>Huffman Bits</th>
+                  <th>SF Bits</th>
+                  <th>Difference</th>
+                  <th>Leader</th>
+                </tr>
+              </thead>
+              <tbody id="sweep-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
 
       <!-- Theoretical Limits -->
